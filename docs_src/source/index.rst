@@ -13,3 +13,6 @@ This library is under developement.
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
+
+   api
+   contributing
