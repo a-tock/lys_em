@@ -1,4 +1,4 @@
-# lys_mat: python code for generation of crystal structures
+# lys_em: python code for simulation and analysis of electron microscopes
 
 Check out for the [documentation] for more information.
 
