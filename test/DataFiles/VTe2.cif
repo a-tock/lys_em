@@ -1,0 +1,58 @@
+#======================================================================
+
+# CRYSTAL DATA
+
+#----------------------------------------------------------------------
+
+data_VESTA_phase_1
+
+
+_pd_phase_name                         'V1.04 Te2'
+_cell_length_a                         18.98400
+_cell_length_b                         3.59470
+_cell_length_c                         9.06900
+_cell_angle_alpha                      90
+_cell_angle_beta                       134.62000
+_cell_angle_gamma                      90
+_symmetry_space_group_name_H-M         'C 2/m'
+_symmetry_Int_Tables_number            12
+
+loop_
+_symmetry_equiv_pos_as_xyz
+   'x, y, z'
+   '-x, -y, -z'
+   '-x, y, -z'
+   'x, -y, z'
+   'x+1/2, y+1/2, z'
+   '-x+1/2, -y+1/2, -z'
+   '-x+1/2, y+1/2, -z'
+   'x+1/2, -y+1/2, z'
+
+loop_
+   _atom_site_label
+   _atom_site_occupancy
+   _atom_site_fract_x
+   _atom_site_fract_y
+   _atom_site_fract_z
+   _atom_site_adp_type
+   _atom_site_U_iso_or_equiv
+   _atom_site_type_symbol
+   V1         1.0     0.000000      0.000000      0.000000     Uiso  0.007415 V
+   V2         1.0     0.143100      0.500000      0.989200     Uiso  0.006107 V
+   Te1        1.0     0.144700      0.500000      0.276400     Uiso  0.008538 Te
+   Te2        1.0     0.295400      0.000000      0.214100     Uiso  0.009730 Te
+   Te3        1.0     0.491500      0.500000      0.289700     Uiso  0.008868 Te
+
+loop_
+   _atom_site_aniso_label
+   _atom_site_aniso_U_11
+   _atom_site_aniso_U_22
+   _atom_site_aniso_U_33
+   _atom_site_aniso_U_12
+   _atom_site_aniso_U_13
+   _atom_site_aniso_U_23
+   V1	 0.00400  0.01200  0.00400  0.00000  0.00200  0.00000
+   V2	 0.00800  0.00300  0.01100  0.00000  0.00800  0.00000
+   Te1	 0.01230  0.00330  0.00940  0.00000  0.00740  0.00000
+   Te2	 0.01100  0.00380  0.01240  0.00000  0.00750  0.00000
+   Te3	 0.01200  0.00400  0.00760  0.00000  0.00580  0.00000
