@@ -5,24 +5,22 @@ import pyfftw
 
 from lys import DaskWave
 from lys_mat import CrystalStructure
-
-from .kinematical import structureFactors
+from . import structureFactors 
+from .electronBeam import ElectronBeam
 fft, ifft = pyfftw.interfaces.numpy_fft.fft2, pyfftw.interfaces.numpy_fft.ifft2
 m = 9.10938356e-31  # kg
-
 pyfftw.interfaces.cache.enable()
 
 
 class FunctionSpace:
     """
     Create 2 dimensional rectangular grid function space that is defined by the crystal structure.
-
     The length of the rectangular space is defined by the crys.a and crys.b
     Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
-
     """
     def __init__(self, crys, Nx, Ny, division="Auto"):
-        self._unit = np.array([crys.a, crys.b])
+        self._unit = np.array([crys.a, crys.b, crys.gamma])
+        self._unitall = crys.unit
         self._N = np.array([Nx, Ny])
         if division == "Auto":
             self._division = int(crys.unit[2][2] / 2)
@@ -40,12 +38,14 @@ class FunctionSpace:
         """
         if not hasattr(self, "_mask"):
             k = np.sqrt(self.k2)
-            max = self._getMax()
+            max = np.sqrt(self._getMax())
             self._mask = np.where(k > max * 2 / 3, 0, 1)
         return self._mask
 
     def _getMax(self):
-        return min(max(abs(self.kx)), max(abs(self.ky)))
+        k2_row0 = self.k2[self._N[0]//2, :]
+        k2_col0 = self.k2[:, self._N[1]//2]
+        return min(min(k2_row0), min(k2_col0))
 
     @property
     def k2(self):
@@ -63,25 +63,21 @@ class FunctionSpace:
         Return 2 dimensional reciprocal space grid. The unit is rad/A.
         Each cell has (2pi/a, 2pi/b) length in reciprocal space.
         """
+        matrix = self._unitall
+        inverse_matrix = 2 * np.pi * np.linalg.inv(matrix)
+        inverse_matrix_2d = inverse_matrix[:2, :2]
+        grid = self._create_grid()
         if not hasattr(self, "_kvec"):
-            self._kvec = np.array(np.meshgrid(self.kx, self.ky)).transpose(2, 1, 0)
+            self._kvec = np.dot(grid, inverse_matrix_2d.T)
         return self._kvec
 
-    @property
-    def kx(self):
-        """
-        Calculate kx array in reciprocal space. The unit is rad/A.
-        The maximum kx of the reciprocal space is 2pi/a * Nx
-        """
-        return np.fft.fftfreq(self._N[0], self._unit[0] / 2 / np.pi) * self._N[0]
-
-    @property
-    def ky(self):
-        """
-        Calculate ky in reciprocal space. The unit is rad/A.
-        The maximum kx of the reciprocal space is 2pi/b * Ny
-        """
-        return np.fft.fftfreq(self._N[1], self._unit[1] / 2 / np.pi) * self._N[1]
+    def _create_grid(self):
+        x = np.arange(-self._N[0]//2, self._N[0]//2)
+        shift_x = np.roll(x, self._N[0]//2)
+        y = np.arange(-self._N[1]//2, self._N[1]//2)
+        shift_y = np.roll(y, self._N[1]//2)
+        grid = np.array(np.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
+        return grid
 
     @property
     def dz(self):
@@ -97,7 +93,7 @@ class FunctionSpace:
 
     @property
     def dV(self):
-        return self._unit[0] * self._unit[1] / self._N[0] / self._N[1]
+        return np.sin(self._unit[2] * np.pi / 180) * self._unit[0] * self._unit[1] / self._N[0] / self._N[1]
 
     def FT(self, data):
         return np.fft.fft2(data) * self.dV
@@ -145,19 +141,16 @@ class Slices:
 
 def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
     sp = FunctionSpace(c, Nx, Ny, division)
-    c.saveAsCif(".crystal.cif")
+    c.saveAs(".crystal.cif")
     ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
     shape = (int(len(theta_list)/ncore), Nx, Ny, numOfSlices * sp.division) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
-
     # Dstribute theta list to each worker
     thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
     delays = [dask.delayed(__calc_single, traverse=False)(".crystal.cif", numOfSlices, V, Nx, Ny, division, t, returnDepth) for t in thetas]
     # shape: (ncore, theta, thickness, nx, ny)
     res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
-
     x, y = np.linspace(0, c.a, Nx), np.linspace(0, c.b, Ny)
     z = np.linspace(0, sp.dz * sp.division * numOfSlices, sp.division * numOfSlices)
-
     if returnDepth:
         # shape is (ncore, thetas, thickness, nx, ny)
         res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(Nx, Ny, sp.division * numOfSlices, -1), x, y, z, None)
@@ -173,7 +166,7 @@ def __calc_single(cif, numOfSlices, V, Nx, Ny, division, thetas, returnDepth):
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
-    c = CrystalStructure.from_cif(cif)
+    c = CrystalStructure.loadFrom(cif)
     sp = FunctionSpace(c, Nx, Ny, division)
     b = ElectronBeam(V, 0)
     V_rs = Slices(c, sp).getPotentialTerms(b)
@@ -191,7 +184,6 @@ class _Potentials:
         phase1 = np.exp(1j*kvec.dot([dx, dy]))
         if type == "precalc":
             self._pots = self.__calc_potential(V_rs, phase1, numOfSlices)
-
     def __calc_potential(self, V_rs, phase1, numOfSlices):
         potentials = []
         for n in range(numOfSlices):
@@ -199,11 +191,9 @@ class _Potentials:
             for V_r in V_rs:
                 potentials.append(ifft(fft(V_r) * phase))
         return potentials
-
     def __iter__(self):
         self._n = 0
         return self
-
     def __next__(self):
         if self._n == len(self._pots):
             raise StopIteration()
@@ -215,13 +205,10 @@ class _Potentials:
 def _apply(phi, pots, P_k, returnDepth=False):
     """
     Calculate multislice simulation.
-
     if returnDepth==True, ndarray of (thickness, Nx, Ny) dimension will returnd, otherwise the shape will be (Nx, Ny).
-
     Returns:
         numpy array: see above.
     """
-
     res = []
     for V_r in pots:
         phi = ifft(P_k * fft(phi * V_r))
