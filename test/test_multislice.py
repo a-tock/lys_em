@@ -4,7 +4,8 @@ from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure,Atom
 from lys_em.scatteringFactor import projectedPotential
-from lys_em.multislice import FunctionSpace, Slices, calcMultiSliceDiffraction, _apply, m, _Potentials
+from lys_em.multislice import FunctionSpace, calcMultiSliceDiffraction, _apply
+from lys_em.crystalPotential import _Slices, _Potentials, m
 from lys_em.electronBeam import ElectronBeam
 
 
@@ -12,15 +13,14 @@ class MultiSlice_test(unittest.TestCase):
     path = "test/DataFiles"
 
     def setUp(self):
-
         self.Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
         _TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
         self.TaTe2 = _TaTe2.createSupercell(np.array([[1, 0, 0], [0, 1, 0], [1, 0, 3]]).T)
         _TaTe2_1T = CrystalStructure.loadFrom(self.path + "/TaTe2_1T.cif")
         self.TaTe2_1T = _TaTe2_1T.createSupercell(np.array([[-3, -6, 0], [1, 0, 0], [0, 0, 3]]))
-        self.Au_single = CrystalStructure([20, 20, 20, 90, 90, 90], [Atom("Au", (0, 0, 0))])
         self.VTe2_ortho = CrystalStructure.loadFrom(self.path + "/VTe2_ortho.cif")
         self.VTe2_trigonal = CrystalStructure.loadFrom(self.path + "/VTe2_trigonal.cif")
+        self.Au_single = CrystalStructure([20, 20, 20, 90, 90, 90], [Atom("Au", (0, 0, 0))])
 
     def test_FunctionSpace(self):
         sp = FunctionSpace(self.Au, 10, 10)
@@ -32,39 +32,6 @@ class MultiSlice_test(unittest.TestCase):
         assert_array_almost_equal(sp.kvec[2, 0], [ref * 2, 0])
 
         sp = FunctionSpace(self.Au_single, 512 * 2, 512 * 2, division=1)
-        sp.division * sp.dz == self.TaTe2.unit[2][2]
-
-    def test_Slices(self):
-        # check slicing
-        sp = FunctionSpace(self.Au, 10, 10, division=9)
-        b = ElectronBeam(60e3, 0)
-        slices = Slices(self.Au, sp)
-        n = np.sum([len(s.atoms) for s in slices._slices])
-        self.assertEqual(n, len(self.Au.atoms))
-
-        sp = FunctionSpace(self.TaTe2, 10, 10, division=9)
-        slices = Slices(self.TaTe2, sp)
-        n = np.sum([len(s.atoms) for s in slices._slices])
-        self.assertEqual(n, len(self.TaTe2.atoms))
-
-        # check single atom potential
-        N = 1024  # if this value is too small, this test fails because of window function in Function Space.
-        sp = FunctionSpace(self.Au_single, N, N, division=1)
-        V_k = Slices(self.Au_single, sp)._calculatePotential(self.Au_single) * b.getWavelength() * b.getRelativisticMass() / m  # A^2
-        V_r = sp.IFT(V_k * sp.mask)
-
-        r = np.linspace(0, self.Au_single.a, N, endpoint=False)
-        sf = projectedPotential("Au", r) / b.getSigma0() * b.getSigma()
-        self.assertAlmostEqual(V_r[0][0], sf[0])
-        self.assertAlmostEqual(V_r[0][1], sf[1])
-        self.assertAlmostEqual(V_r[0][2], sf[2])
-
-        # check potential calculation
-        sp = FunctionSpace(self.Au, 10, 10, division=1)
-        slices = Slices(self.Au, sp)
-        pot = slices._calculatePotential(slices._slices[0])
-        self.assertTrue(np.abs((pot[0, 0] / pot[0, 2]) - 1.725) < 1e-3)
-        self.assertTrue(np.abs(pot[0, 1]) < 1e-5)
 
     def test_TaTe2(self):
         # Compare result with pre-calculated results at 2023/12/14.
@@ -82,7 +49,7 @@ class MultiSlice_test(unittest.TestCase):
         crys = CrystalStructure(self.Au.cell, [])
         sp = FunctionSpace(crys, 128, 128, 10)
         b = ElectronBeam(60e3, 0)
-        V_rs = Slices(crys, sp).getPotentialTerms(b)
+        V_rs = _Slices(crys, sp).getPotentialTerms(b)
         pot = _Potentials(V_rs, sp.kvec, crys.unit[2][0], crys.unit[2][1], 1)
 
         phi = np.zeros((128, 128))
@@ -110,3 +77,45 @@ class MultiSlice_test(unittest.TestCase):
         # new_hkl = np.dot([h, k, l], np.transpose(Transformation_matrix))
         relative_error = np.abs(cal_ortho[1, 1]-cal_trigonal[1, 0]) / np.abs(cal_ortho[1, 1])
         self.assertTrue(np.all(relative_error < 1e-4))
+
+
+class CrystalPotential_test(unittest.TestCase):
+    path = "test/DataFiles"
+
+    def setUp(self):
+        self.Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
+        _TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
+        self.TaTe2 = _TaTe2.createSupercell(np.array([[1, 0, 0], [0, 1, 0], [1, 0, 3]]).T)
+        self.Au_single = CrystalStructure([20, 20, 20, 90, 90, 90], [Atom("Au", (0, 0, 0))])
+
+    def test_Slices(self):
+        # check slicing
+        sp = FunctionSpace(self.Au, 10, 10, division=9)
+        b = ElectronBeam(60e3, 0)
+        slices = _Slices(self.Au, sp)
+        n = np.sum([len(s.atoms) for s in slices._slices])
+        self.assertEqual(n, len(self.Au.atoms))
+
+        sp = FunctionSpace(self.TaTe2, 10, 10, division=9)
+        slices = _Slices(self.TaTe2, sp)
+        n = np.sum([len(s.atoms) for s in slices._slices])
+        self.assertEqual(n, len(self.TaTe2.atoms))
+
+        # check single atom potential
+        N = 1024  # if this value is too small, this test fails because of window function in Function Space.
+        sp = FunctionSpace(self.Au_single, N, N, division=1)
+        V_k = _Slices(self.Au_single, sp)._calculatePotential(self.Au_single) * b.getWavelength() * b.getRelativisticMass() / m  # A^2
+        V_r = sp.IFT(V_k * sp.mask)
+
+        r = np.linspace(0, self.Au_single.a, N, endpoint=False)
+        sf = projectedPotential("Au", r) / b.getSigma0() * b.getSigma()
+        self.assertAlmostEqual(V_r[0][0], sf[0])
+        self.assertAlmostEqual(V_r[0][1], sf[1])
+        self.assertAlmostEqual(V_r[0][2], sf[2])
+
+        # check potential calculation
+        sp = FunctionSpace(self.Au, 10, 10, division=1)
+        slices = _Slices(self.Au, sp)
+        pot = slices._calculatePotential(slices._slices[0])
+        self.assertTrue(np.abs((pot[0, 0] / pot[0, 2]) - 1.725) < 1e-3)
+        self.assertTrue(np.abs(pot[0, 1]) < 1e-5)

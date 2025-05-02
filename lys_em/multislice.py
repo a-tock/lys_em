@@ -1,15 +1,11 @@
 import numpy as np
 import dask.array as da
 import dask
-import pyfftw
 
 from lys import DaskWave
 from lys_mat import CrystalStructure
-from . import structureFactors 
 from .electronBeam import ElectronBeam
-fft, ifft = pyfftw.interfaces.numpy_fft.fft2, pyfftw.interfaces.numpy_fft.ifft2
-m = 9.10938356e-31  # kg
-pyfftw.interfaces.cache.enable()
+from . import fft, ifft, CrystalPotential
 
 
 class FunctionSpace:
@@ -110,47 +106,20 @@ class FunctionSpace:
         return np.exp(self.dz * tilt)
 
 
-class Slices:
-    def __init__(self, crys, sp):
-        self._sp = sp
-        self._slices = []
-        zList = np.arange(sp.division + 1) * sp.dz
-        positionList = crys.getAtomicPositions()
-        for i in range(len(zList) - 1):
-            atomsList = [at for pos, at in zip(positionList, crys.atoms) if zList[i] <= pos[2] < zList[i + 1]]
-            self._slices.append(CrystalStructure(crys.cell, atomsList))
-
-    def _calculatePotential(self, crys):
-        if len(crys.atoms) == 0:
-            return 0
-        else:
-            k = self._sp.kvec
-            q = np.array([k[:, :, 0], k[:, :, 1], self._sp.getArray() * 0]).transpose(1, 2, 0)
-            return structureFactors(crys, q)
-
-    def getPotentialTerms(self, beam):
-        res = []
-        for c in self._slices:
-            V_k = self._calculatePotential(c) * beam.getWavelength() * beam.getRelativisticMass() / m  # A^2
-            V_r = self._sp.IFT(V_k * self._sp.mask)
-            V_z = np.exp(1j * V_r)
-            V_z_lim = self._sp.IFT(self._sp.FT(V_z) * self._sp.mask)
-            res.append(V_z_lim)
-        return res
-
-
 def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
     sp = FunctionSpace(c, Nx, Ny, division)
-    c.saveAs(".crystal.cif")
     ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
     shape = (int(len(theta_list)/ncore), Nx, Ny, numOfSlices * sp.division) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
+
     # Dstribute theta list to each worker
     thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
-    delays = [dask.delayed(__calc_single, traverse=False)(".crystal.cif", numOfSlices, V, Nx, Ny, division, t, returnDepth) for t in thetas]
+    delays = [dask.delayed(__calc_single, traverse=False)(c, numOfSlices, V, Nx, Ny, division, t, returnDepth) for t in thetas]
+
     # shape: (ncore, theta, thickness, nx, ny)
     res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
     x, y = np.linspace(0, c.a, Nx), np.linspace(0, c.b, Ny)
     z = np.linspace(0, sp.dz * sp.division * numOfSlices, sp.division * numOfSlices)
+
     if returnDepth:
         # shape is (ncore, thetas, thickness, nx, ny)
         res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(Nx, Ny, sp.division * numOfSlices, -1), x, y, z, None)
@@ -161,45 +130,20 @@ def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="
         return res
 
 
-def __calc_single(cif, numOfSlices, V, Nx, Ny, division, thetas, returnDepth):
+def __calc_single(c, numOfSlices, V, Nx, Ny, division, thetas, returnDepth):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
-    c = CrystalStructure.loadFrom(cif)
     sp = FunctionSpace(c, Nx, Ny, division)
     b = ElectronBeam(V, 0)
-    V_rs = Slices(c, sp).getPotentialTerms(b)
-    pot = _Potentials(V_rs, sp.kvec, c.unit[2][0], c.unit[2][1], numOfSlices)
+    pot = CrystalPotential(sp, b, c, numOfSlices)
     res = []
     for tx, ty in thetas:
         P_k = sp.getPropagationTerm(b.getWavelength(), tx, ty)
         phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
-
-
-class _Potentials:
-    def __init__(self, V_rs, kvec, dx, dy, numOfSlices, type="precalc"):
-        phase1 = np.exp(1j*kvec.dot([dx, dy]))
-        if type == "precalc":
-            self._pots = self.__calc_potential(V_rs, phase1, numOfSlices)
-    def __calc_potential(self, V_rs, phase1, numOfSlices):
-        potentials = []
-        for n in range(numOfSlices):
-            phase = 1 if n == 0 else phase * phase1
-            for V_r in V_rs:
-                potentials.append(ifft(fft(V_r) * phase))
-        return potentials
-    def __iter__(self):
-        self._n = 0
-        return self
-    def __next__(self):
-        if self._n == len(self._pots):
-            raise StopIteration()
-        res = self._pots[self._n]
-        self._n += 1
-        return res
 
 
 def _apply(phi, pots, P_k, returnDepth=False):
