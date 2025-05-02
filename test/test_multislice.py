@@ -3,10 +3,11 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure,Atom
+from lys_em import TEM
+from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import FunctionSpace, calcMultiSliceDiffraction, _apply
-from lys_em.crystalPotential import _Slices, _Potentials, m
-from lys_em.electronBeam import ElectronBeam
+from lys_em.crystalPotential import _Slices, _Potentials
 
 
 class MultiSlice_test(unittest.TestCase):
@@ -48,18 +49,18 @@ class MultiSlice_test(unittest.TestCase):
     def test_Propagation(self):
         crys = CrystalStructure(self.Au.cell, [])
         sp = FunctionSpace(crys, 128, 128, 10)
-        b = ElectronBeam(60e3, 0)
+        b = TEM(60e3)
         V_rs = _Slices(crys, sp).getPotentialTerms(b)
         pot = _Potentials(V_rs, sp.kvec, crys.unit[2][0], crys.unit[2][1], 1)
 
         phi = np.zeros((128, 128))
         phi[0][0] = 1
 
-        P_k = sp.getPropagationTerm(b.getWavelength())
+        P_k = sp.getPropagationTerm(b.wavelength)
         phi = _apply(phi, pot, P_k*sp.mask)
 
         # theoretical solution (propagation after a in free space)
-        calcphi = np.fft.ifft2(sp._mask * np.exp(-1j * b.getWavelength() * self.Au.a * sp.k2 / 4 / np.pi))
+        calcphi = np.fft.ifft2(sp._mask * np.exp(-1j * b.wavelength * self.Au.a * sp.k2 / 4 / np.pi))
 
         assert_array_almost_equal(phi, calcphi)
 
@@ -91,7 +92,7 @@ class CrystalPotential_test(unittest.TestCase):
     def test_Slices(self):
         # check slicing
         sp = FunctionSpace(self.Au, 10, 10, division=9)
-        b = ElectronBeam(60e3, 0)
+        b = TEM(60e3, 0)
         slices = _Slices(self.Au, sp)
         n = np.sum([len(s.atoms) for s in slices._slices])
         self.assertEqual(n, len(self.Au.atoms))
@@ -104,11 +105,16 @@ class CrystalPotential_test(unittest.TestCase):
         # check single atom potential
         N = 1024  # if this value is too small, this test fails because of window function in Function Space.
         sp = FunctionSpace(self.Au_single, N, N, division=1)
-        V_k = _Slices(self.Au_single, sp)._calculatePotential(self.Au_single) * b.getWavelength() * b.getRelativisticMass() / m  # A^2
+        V_k = _Slices(self.Au_single, sp)._calculatePotential(self.Au_single) * b.wavelength * b.relativisticMass / m  # A^2
         V_r = sp.IFT(V_k * sp.mask)
 
         r = np.linspace(0, self.Au_single.a, N, endpoint=False)
-        sf = projectedPotential("Au", r) / b.getSigma0() * b.getSigma()
+
+        M, lamb = b.relativisticMass, b.wavelength
+        sigma = 2 * np.pi * M * e * lamb / h**2  # kg C m /eV^2 s^2
+        sigma0 = 2 * np.pi * m * e / h**2  # kg C m /eV^2 s^2
+
+        sf = projectedPotential("Au", r) / sigma0 * sigma
         self.assertAlmostEqual(V_r[0][0], sf[0])
         self.assertAlmostEqual(V_r[0][1], sf[1])
         self.assertAlmostEqual(V_r[0][2], sf[2])

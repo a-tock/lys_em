@@ -3,8 +3,8 @@ from lys_mat import CrystalStructure
 
 from . import fft, ifft
 from .kinematical import structureFactors 
+from .consts import m
 
-m = 9.10938356e-31  # kg
 
 class CrystalPotential:
     def __init__(self, space, beam, crys, numOfCells):
@@ -66,7 +66,7 @@ class _Slices:
     def getPotentialTerms(self, beam):
         res = []
         for c in self._slices:
-            V_k = self._calculatePotential(c) * beam.getWavelength() * beam.getRelativisticMass() / m  # A^2
+            V_k = self._calculatePotential(c) * beam.wavelength * beam.relativisticMass / m  # A^2
             V_r = self._sp.IFT(V_k * self._sp.mask)
             V_z = np.exp(1j * V_r)
             V_z_lim = self._sp.IFT(self._sp.FT(V_z) * self._sp.mask)

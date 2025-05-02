@@ -4,8 +4,7 @@ import dask
 
 from lys import DaskWave
 from lys_mat import CrystalStructure
-from .electronBeam import ElectronBeam
-from . import fft, ifft, CrystalPotential
+from . import fft, ifft, TEM, CrystalPotential
 
 
 class FunctionSpace:
@@ -108,12 +107,18 @@ class FunctionSpace:
 
 def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
     sp = FunctionSpace(c, Nx, Ny, division)
+
+    # prepare potential
+    tem = TEM(V)
+    pot = CrystalPotential(sp, tem, c, numOfSlices)
+
+    # prepare list of thetas
     ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
     shape = (int(len(theta_list)/ncore), Nx, Ny, numOfSlices * sp.division) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
-
-    # Dstribute theta list to each worker
     thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
-    delays = [dask.delayed(__calc_single, traverse=False)(c, numOfSlices, V, Nx, Ny, division, t, returnDepth) for t in thetas]
+
+    # Dstribute all tasks to each worker
+    delays = [dask.delayed(__calc_single, traverse=False)(sp, pot, tem, t, returnDepth) for t in thetas]
 
     # shape: (ncore, theta, thickness, nx, ny)
     res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
@@ -130,17 +135,14 @@ def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="
         return res
 
 
-def __calc_single(c, numOfSlices, V, Nx, Ny, division, thetas, returnDepth):
+def __calc_single(sp, pot, tem, thetas, returnDepth):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
-    sp = FunctionSpace(c, Nx, Ny, division)
-    b = ElectronBeam(V, 0)
-    pot = CrystalPotential(sp, b, c, numOfSlices)
     res = []
     for tx, ty in thetas:
-        P_k = sp.getPropagationTerm(b.getWavelength(), tx, ty)
+        P_k = sp.getPropagationTerm(tem.wavelength, tx, ty)
         phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
