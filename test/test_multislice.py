@@ -66,11 +66,11 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_nonorthogonal(self):
         # Relative error of intensity of a specific index in orthogonal and non-orthogonal systems
-        calc_ortho = calcMultiSliceDiffraction(self.VTe2_ortho, numOfSlices=50, V=200e3, Nx=216, Ny=216, division=1,
+        calc_ortho = calcMultiSliceDiffraction(self.VTe2_ortho, numOfCells=50, V=200e3, Nx=216, Ny=216, division=1,
         theta_list=[[0, 0]], returnDepth=True)
         fourior_ortho = np.fft.fft2(calc_ortho, axes=(0, 1))
         cal_ortho = (np.absolute(fourior_ortho)**2).sum(axis=3)
-        calc_trigonal = calcMultiSliceDiffraction(self.VTe2_trigonal, numOfSlices=50, V=200e3, Nx=216, Ny=216, division=1,
+        calc_trigonal = calcMultiSliceDiffraction(self.VTe2_trigonal, numOfCells=50, V=200e3, Nx=216, Ny=216, division=1,
         theta_list=[[0, 0]], returnDepth=True)
         fourior_trigonal = np.fft.fft2(calc_trigonal, axes=(0, 1))
         cal_trigonal = (np.absolute(fourior_trigonal)**2).sum(axis=3)

@@ -3,7 +3,6 @@ import dask.array as da
 import dask
 
 from lys import DaskWave
-from lys_mat import CrystalStructure
 from . import fft, ifft, TEM, CrystalPotential
 
 
@@ -105,16 +104,16 @@ class FunctionSpace:
         return np.exp(self.dz * tilt)
 
 
-def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
+def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
     sp = FunctionSpace(c, Nx, Ny, division)
 
     # prepare potential
     tem = TEM(V)
-    pot = CrystalPotential(sp, tem, c, numOfSlices)
+    pot = CrystalPotential(sp, tem, c, numOfCells)
 
     # prepare list of thetas
     ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
-    shape = (int(len(theta_list)/ncore), Nx, Ny, numOfSlices * sp.division) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
+    shape = (int(len(theta_list)/ncore), Nx, Ny, numOfCells * sp.division) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
     thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
 
     # Dstribute all tasks to each worker
@@ -123,11 +122,11 @@ def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="
     # shape: (ncore, theta, thickness, nx, ny)
     res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
     x, y = np.linspace(0, c.a, Nx), np.linspace(0, c.b, Ny)
-    z = np.linspace(0, sp.dz * sp.division * numOfSlices, sp.division * numOfSlices)
+    z = np.linspace(0, sp.dz * sp.division * numOfCells, sp.division * numOfCells)
 
     if returnDepth:
         # shape is (ncore, thetas, thickness, nx, ny)
-        res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(Nx, Ny, sp.division * numOfSlices, -1), x, y, z, None)
+        res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(Nx, Ny, sp.division * numOfCells, -1), x, y, z, None)
         return res
     else:
         # shape is (ncore, thetas, nx, ny)
