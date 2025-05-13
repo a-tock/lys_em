@@ -7,17 +7,26 @@ from .consts import m
 
 
 class CrystalPotential:
-    def __init__(self, space, beam, crys, numOfCells):
+    def __init__(self, space, beam, crys, numOfCells, division = "Auto"):
         self._sp = space
         self._beam = beam
         self._crys = crys
         self._cells = numOfCells
+        if division == "Auto":
+            division = int(crys.unit[2][2] / 2)
+        self._division = division
 
     def __iter__(self):
-        V_rs = _Slices(self._crys, self._sp).getPotentialTerms(self._beam)
+        V_rs = _Slices(self._crys, self._sp, self._division).getPotentialTerms(self._beam)
         self.pot = _Potentials(V_rs, self._sp.kvec, self._crys.unit[2][0], self._crys.unit[2][1], self._cells)
         return self.pot.__iter__()
 
+    def __len__(self):
+        return self._cells * self._division
+    
+    @property
+    def dz(self):
+        return self._crys.unit[2][2] / self._division
 
 class _Potentials:
     def __init__(self, V_rs, kvec, dx, dy, numOfSlices, type="precalc"):
@@ -46,10 +55,11 @@ class _Potentials:
 
 
 class _Slices:
-    def __init__(self, crys, sp):
+    def __init__(self, crys, sp, division):
         self._sp = sp
         self._slices = []
-        zList = np.arange(sp.division + 1) * sp.dz
+        
+        zList = np.arange(division + 1) * crys.unit[2][2] / division
         positionList = crys.getAtomicPositions()
         for i in range(len(zList) - 1):
             atomsList = [at for pos, at in zip(positionList, crys.atoms) if zList[i] <= pos[2] < zList[i + 1]]
