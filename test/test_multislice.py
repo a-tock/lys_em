@@ -15,10 +15,6 @@ class MultiSlice_test(unittest.TestCase):
 
     def setUp(self):
         self.Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
-        _TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
-        self.TaTe2 = _TaTe2.createSupercell(np.array([[1, 0, 0], [0, 1, 0], [1, 0, 3]]).T)
-        _TaTe2_1T = CrystalStructure.loadFrom(self.path + "/TaTe2_1T.cif")
-        self.TaTe2_1T = _TaTe2_1T.createSupercell(np.array([[-3, -6, 0], [1, 0, 0], [0, 0, 3]]))
         self.VTe2_ortho = CrystalStructure.loadFrom(self.path + "/VTe2_ortho.cif")
         self.VTe2_trigonal = CrystalStructure.loadFrom(self.path + "/VTe2_trigonal.cif")
         self.Au_single = CrystalStructure([20, 20, 20, 90, 90, 90], [Atom("Au", (0, 0, 0))])
@@ -38,13 +34,11 @@ class MultiSlice_test(unittest.TestCase):
         # Compare result with pre-calculated results at 2023/12/14.
         res = calcMultiSliceDiffraction(self.Au, 10, returnDepth=False)
         assert_array_almost_equal(res.compute()[:,:,0].data, np.load(self.path+"/Au.npy"))
-        
-        
-        #res = calcMultiSliceDiffraction(self.TaTe2, 10, returnDepth=False)
-        #assert_array_almost_equal(res.compute()[:,:,0].data, np.load(self.path+"/TaTe2.npy"))
-
-        #res = calcMultiSliceDiffraction(self.TaTe2_1T, 10, returnDepth=False)
-        #assert_array_almost_equal(res.compute()[:,:,0].data, np.load(self.path+"/TaTe2_1T.npy"))
+    
+        TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
+        res = calcMultiSliceDiffraction(TaTe2, 90, V=0.75e6, Nx=512, Ny=256, returnDepth=False, theta_list=[[-0.80437, 0]])
+        res = abs(np.fft.fft2(res.compute().data[:, :, 0]))
+        assert_array_almost_equal(res[:13,0], [0.5577267344048619, 0, 0.002756932398382368, 0, 0.010163465792031692, 0, 0.11391665208304297, 0, 0.0031967300829784428, 0, 0.0024738436644140016, 0, 0.21191082484442536])
 
     def test_Propagation(self):
         crys = CrystalStructure(self.Au.cell, [])
