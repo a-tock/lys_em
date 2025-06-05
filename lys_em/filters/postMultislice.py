@@ -15,19 +15,33 @@ class PostMultiSlice(FilterInterface):
         if self._type == "Image":
             return DaskWave(self._process(wave.data).sum(axis=3), wave.axes[0], wave.axes[1], wave.axes[2], wave.note)
         elif self._type == "Diffraction":
-            wave = DaskWave(wave, chunks=(wave.shape[0], wave.shape[1], 1, 1))
-            wave = filters.FourierFilter([0, 1], process='complex').execute(wave)
+            if wave.ndim == 4:
+                wave = DaskWave(wave, chunks=(wave.shape[0], wave.shape[1], 1, 1))
+                wave = filters.FourierFilter([0, 1], process='complex').execute(wave)
 
-            data = wave.data
-            data = data[data.shape[0] // 2 - 50:data.shape[0] // 2 + 50, data.shape[1] // 2 - 50:data.shape[1] // 2 + 50].compute()
-            zero = np.zeros([1000, 1000, *data.shape[2:]], dtype=complex)
-            zero[::10, ::10] = data
-            data = self._process(da.from_array(zero))
-            data = data.sum(axis=3)
+                data = wave.data
+                data = data[data.shape[0] // 2 - 50:data.shape[0] // 2 + 50, data.shape[1] // 2 - 50:data.shape[1] // 2 + 50].compute()
+                zero = np.zeros([1000, 1000, *data.shape[2:]], dtype=complex)
+                zero[::10, ::10] = data
+                data = self._process(da.from_array(zero))
 
-            x = np.linspace(wave.axes[0][wave.shape[0] // 2 - 50], wave.axes[0][wave.shape[0] // 2 + 50], 1000) * 2 * np.pi
-            y = np.linspace(wave.axes[1][wave.shape[1] // 2 - 50], wave.axes[1][wave.shape[1] // 2 + 50], 1000) * 2 * np.pi
-            return DaskWave(data, x, y, wave.axes[2], wave.note)
+                x = np.linspace(wave.axes[0][wave.shape[0] // 2 - 50], wave.axes[0][wave.shape[0] // 2 + 50], 1000) * 2 * np.pi
+                y = np.linspace(wave.axes[1][wave.shape[1] // 2 - 50], wave.axes[1][wave.shape[1] // 2 + 50], 1000) * 2 * np.pi
+                return DaskWave(data, x, y, wave.axes[2], wave.note)
+
+            elif wave.ndim == 3:
+                wave = DaskWave(wave, chunks=(wave.shape[0], wave.shape[1], 1))
+                wave = filters.FourierFilter([0, 1], process='complex').execute(wave)
+
+                data = wave.data
+                data = data[data.shape[0] // 2 - 50:data.shape[0] // 2 + 50, data.shape[1] // 2 - 50:data.shape[1] // 2 + 50].compute()
+                zero = np.zeros([1000, 1000, *data.shape[2:]], dtype=complex)
+                zero[::10, ::10] = data
+                data = self._process(da.from_array(zero))
+
+                x = np.linspace(wave.axes[0][wave.shape[0] // 2 - 50], wave.axes[0][wave.shape[0] // 2 + 50], 1000) * 2 * np.pi
+                y = np.linspace(wave.axes[1][wave.shape[1] // 2 - 50], wave.axes[1][wave.shape[1] // 2 + 50], 1000) * 2 * np.pi
+                return DaskWave(data, x, y, wave.axes[2], wave.note)
 
     def _process(self, data):
         if self._proc == "Absolute":
@@ -41,7 +55,7 @@ class PostMultiSlice(FilterInterface):
         return {"type": self._type, "process": self._proc}
 
     def getRelativeDimension(self):
-        return -1
+        return 0
 
 
 @filterGUI(PostMultiSlice)
