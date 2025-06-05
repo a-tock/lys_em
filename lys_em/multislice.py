@@ -106,6 +106,9 @@ class FunctionSpace:
 
 
 def calcMultiSliceDiffraction(c, numOfSlices, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
+    """
+    Parameters: Defocus, sample tilt, beam tilt, probe position
+    """
     sp = FunctionSpace(c, Nx, Ny, division)
 
     # prepare potential
