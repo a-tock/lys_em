@@ -9,13 +9,13 @@ class TEM(object):
         acc (float): The acceleration voltage.
         convergence (float): The convergence angle of incident electron beam.
     """
-    def __init__(self, acc, convergence=0, divergence=np.inf, defocus=0, Cs=0, directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]]):
+    def __init__(self, acc, convergence=0, divergence=np.inf, defocus=0, Cs=0, direction=[0, 0, -1]):
         self.__acc = acc
         self._convergence = convergence
         self._divergence = divergence
         self._defocus = defocus
         self._Cs = Cs
-        self.__direction = np.array(directions)
+        self._direction = np.array(direction)/np.linalg.norm(direction)
 
     @property
     def wavelength(self):
@@ -58,6 +58,7 @@ class TEM(object):
         '''
         return m + e * self.__acc / c**2
 
-    def getDirectionVectors(self):
-        return self.__direction
+    @property
+    def beamDirection(self):
+        return self._direction
 

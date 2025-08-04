@@ -3,9 +3,8 @@ import numpy as np
 
 class FunctionSpace:
     """
-    Create 2 dimensional rectangular grid function space that is defined by the crystal structure.
-    The length of the rectangular space is defined by the crys.a and crys.b
-    Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
+    Create 2 dimensional rectangular grid function space.
+    The length of the rectangular space is defined by a and b. Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
     """
     def __init__(self, a, b, gamma=90, Nx=128, Ny=128):
         self._unit = np.array([[a,0], [b*np.cos(gamma*np.pi/180),b*np.sin(gamma*np.pi/180)]])

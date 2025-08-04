@@ -1,5 +1,6 @@
 import numpy as np
 from . import scatteringFactor
+from .space import FunctionSpace
 
 
 def _scatteringFactors(c, k):
@@ -49,3 +50,14 @@ def formFactors(c, N, K):
     shelement = [_sindiv(N[i], kR[:, :, i]) for i in range(3)]
     sh = N[0] * N[1] * N[2] * shelement[0] * shelement[1] * shelement[2]
     return sh
+
+
+def calcKinematicalDiffraction(c, TEM, numOfCells, Nx=128, Ny=128):
+    sp = FunctionSpace.fromCrystal(c, Nx, Ny)
+    kx, ky = sp.kvec[:,:,0], sp.kvec[:,:,1]
+
+    dx, dy, dz = -TEM.beamDirection * TEM.k_in
+    kz = dz - np.sqrt(TEM.k_in**2 - (kx-dx)**2+(ky-dy)**2)
+    k = np.concatenate((sp.kvec, kz[:,:,np.newaxis]), axis=2)
+
+    return abs(structureFactors(c, k)*formFactors(c, [1, 1, numOfCells], k))**2

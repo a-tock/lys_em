@@ -27,6 +27,7 @@ class CrystalPotential:
     @property
     def dz(self):
         return self._crys.unit[2][2] / self._division
+    
 
 class _Potentials:
     def __init__(self, V_rs, kvec, dx, dy, numOfSlices, type="precalc"):
