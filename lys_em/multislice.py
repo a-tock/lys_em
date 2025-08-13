@@ -7,16 +7,33 @@ from . import fft, ifft, TEM, CrystalPotential, FunctionSpace
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
+    """
+    Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.
+
+    Args:
+        c (CrystalStructure): The crystal structure.
+        numOfCells (int): The number of unit cells in the z-direction.
+        V (float, optional): Accelerating voltage in volts. Default is 60e3.
+        Nx (int, optional): Number of grid points along the x-direction. Default is 128.
+        Ny (int, optional): Number of grid points along the y-direction. Default is 128.
+        division (str, optional): Division strategy for calculating potential. Default is "Auto".
+        theta_list (list, optional): List of theta angles for diffraction. Default is [[0, 0]].
+        returnDepth (bool, optional): Whether to return depth information in the result. Default is True.
+
+    Returns:
+        DaskWave: The calculated diffraction pattern, optionally including depth information.
+    """
+
     sp = FunctionSpace.fromCrystal(c, Nx, Ny)
 
     # prepare potential
     tem = TEM(V)
-    pot = CrystalPotential(sp, tem, c, numOfCells, division = division)
+    pot = CrystalPotential(sp, tem, c, numOfCells, division=division)
 
     # prepare list of thetas
-    ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
-    shape = (int(len(theta_list)/ncore), Nx, Ny, len(pot)) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
-    thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
+    ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave, "client") else 1
+    shape = (int(len(theta_list) / ncore), Nx, Ny, len(pot)) if returnDepth else (int(len(theta_list) / ncore), Nx, Ny)
+    thetas = [theta_list[shape[0] * i:shape[0] * (i + 1)] for i in range(ncore)]
 
     # Dstribute all tasks to each worker
     delays = [dask.delayed(__calc_single, traverse=False)(sp, pot, tem, t, returnDepth) for t in thetas]
@@ -44,7 +61,7 @@ def __calc_single(sp, pot, tem, thetas, returnDepth):
     res = []
     for tx, ty in thetas:
         P_k = sp.getPropagationTerm(tem.wavelength, pot.dz, tx, ty)
-        phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
+        phi = _apply(sp.getArray(), pot, P_k * sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
 
@@ -67,14 +84,19 @@ def _apply(phi, pots, P_k, returnDepth=False):
         return phi
 
 
-def makePrecessionTheta(alpha, N=90,min=0, max=360, unit="deg", angle_offset=[0,0]):
+def makePrecessionTheta(alpha, N=90, min=0, max=360, unit="deg", angle_offset=[0, 0]):
     """
     Create list of precesssion angles in degree
+
     Args:
         alpha(float): The precession angle in degree.
-        N(int): The number of sampling points.
-        unit('deg' or 'rad'): The unit of angles.
-    Return:
+        N(int, optional): The number of sampling points. Default is 90.
+        min(float, optional): The minimum angle in degree. Default is 0.
+        max(float, optional): The maximum angle in degree. Default is 360.
+        unit('deg' or 'rad', optional): The unit of angles. Default is 'deg'.
+        angle_offset(list of length 2, optional): The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].
+
+    Returns:
         list of length 2 sequence: The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), ...]
     """
     if unit == "deg":

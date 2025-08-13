@@ -2,6 +2,22 @@ import numpy as np
 
 
 def scatteringFactor(Z, q, type='electron', occupancy=1):
+    """
+    Calculates the atomic scattering factor for a given element and momentum transfer.
+
+    Args:
+        Z (int or str): Atomic number of the element or its symbol as a string.
+        q (float): Momentum transfer in inverse angstroms.
+        type (str, optional): Type of scattering factor to compute ('electron' by default).
+        occupancy (float, optional): Occupancy factor to scale the scattering factor (default is 1).
+
+    Returns:
+        float: The calculated scattering factor for the specified element and conditions.
+
+    Note:
+        Only 'electron' type is currently supported.
+    """
+
     if isinstance(Z, str):
         Z = __numbers[Z]
     if type == 'electron':
@@ -13,6 +29,21 @@ def scatteringFactor(Z, q, type='electron', occupancy=1):
 
 
 def projectedPotential(Z, r, type='electron'):  # in A-1
+    """
+    Calculates the projected potential for a given element and distance.
+
+    Args:
+        Z (int or str): Atomic number of the element or its symbol as a string.
+        r (float): Distance in inverse angstroms.
+        type (str, optional): Type of scattering factor to use ('electron' by default).
+
+    Returns:
+        float: The calculated projected potential for the specified element and conditions.
+
+    Note:
+        Only 'electron' type is currently supported.
+    """
+
     if isinstance(Z, str):
         Z = __numbers[Z]
     if type == 'electron':

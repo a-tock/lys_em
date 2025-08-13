@@ -2,12 +2,24 @@ import numpy as np
 from lys_mat import CrystalStructure
 
 from . import fft, ifft
-from .kinematical import structureFactors 
+from .kinematical import structureFactors
 from .consts import m
 
 
 class CrystalPotential:
-    def __init__(self, space, beam, crys, numOfCells, division = "Auto"):
+    """
+    Represents the potential of a crystal for electron microscopy simulations.
+
+    Args:
+        space (FunctionSpace): The simulation space object containing spatial parameters.
+        beam (TEM): The beam object representing the incident electron beam.
+        crys (CrystalStructure): The crystal object containing unit cell and lattice information.
+        numOfCells (int): Number of unit cells along the beam direction.
+        division (int or str, optional): Number of divisions per unit cell along the beam direction.
+            If "Auto", it is set to half the unit cell length along the z-axis.
+    """
+
+    def __init__(self, space, beam, crys, numOfCells, division="Auto"):
         self._sp = space
         self._beam = beam
         self._crys = crys
@@ -23,15 +35,24 @@ class CrystalPotential:
 
     def __len__(self):
         return self._cells * self._division
-    
+
     @property
     def dz(self):
+        """
+        The slice thickness of the crystal potential.
+
+        This is the distance between two successive slices of the crystal potential.
+        The unit is the same as the unit cell length (Angstroms).
+
+        Returns:
+            float: The slice thickness of the crystal potential.
+        """
         return self._crys.unit[2][2] / self._division
-    
+
 
 class _Potentials:
     def __init__(self, V_rs, kvec, dx, dy, numOfSlices, type="precalc"):
-        phase1 = np.exp(1j*kvec.dot([dx, dy]))
+        phase1 = np.exp(1j * kvec.dot([dx, dy]))
         if type == "precalc":
             self._pots = self.__calc_potential(V_rs, phase1, numOfSlices)
 
@@ -59,7 +80,7 @@ class _Slices:
     def __init__(self, crys, sp, division):
         self._sp = sp
         self._slices = []
-        
+
         zList = np.arange(division + 1) * crys.unit[2][2] / division
         positionList = crys.getAtomicPositions()
         for i in range(len(zList) - 1):
