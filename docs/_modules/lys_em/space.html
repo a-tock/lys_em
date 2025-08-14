@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lys_em.space &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">lys_em.space</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lys_em.space</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="FunctionSpace">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace">[docs]</a>
+<span class="k">class</span> <span class="nc">FunctionSpace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    FunctionSpace represents a 2-dimensional parallelogram grid function space.</span>
+<span class="sd">    The length of the rectangular space is defined by a and b. Each cell of the grid function space is (crys.a/Nx crys.b/Ny)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        a (float): Length of the unit cell along the a-vector.</span>
+<span class="sd">        b (float): Length of the unit cell along the b-vector.</span>
+<span class="sd">        gamma (float, optional): Angle between the unit cell vectors in degrees. Default is 90.</span>
+<span class="sd">        Nx (int, optional): Number of grid points along the a-vector. Default is 128.</span>
+<span class="sd">        Ny (int, optional): Number of grid points along the b-vector. Default is 128.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">Nx</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">Ny</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">),</span> <span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">])</span>
+
+<div class="viewcode-block" id="FunctionSpace.fromCrystal">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace.fromCrystal">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">fromCrystal</span><span class="p">(</span><span class="n">crys</span><span class="p">,</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a FunctionSpace instance from a CrystalStructure instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            crys (CrystalStructure): The CrystalStructure instance to create the FunctionSpace from.</span>
+<span class="sd">            Nx (int): The number of grid points along the a-vector.</span>
+<span class="sd">            Ny (int): The number of grid points along the b-vector.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            FunctionSpace: The created FunctionSpace instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">crys</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">crys</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">crys</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FunctionSpace.getArray">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace.getArray">[docs]</a>
+    <span class="k">def</span> <span class="nf">getArray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a normalized 2D array representing the function space grid.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is</span>
+<span class="sd">            initialized to the value 1/(Nx*Ny), representing a uniform distribution</span>
+<span class="sd">            over the function space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return mask pattern whose diameter is identical with 2/3 of min(kx, ky).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_mask&quot;</span><span class="p">):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k2</span><span class="p">)</span>
+            <span class="nb">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_getMax</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">k</span> <span class="o">&gt;</span> <span class="nb">max</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span>
+
+    <span class="k">def</span> <span class="nf">_getMax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">k2_row0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k2</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">k2_col0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k2</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">k2_row0</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">k2_col0</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">k2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return k^2 for respective grid point in reciprocal space. The unit is rad/A.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_k2&quot;</span><span class="p">):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kvec</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_k2</span> <span class="o">=</span> <span class="n">k</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">k</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_k2</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kvec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return 2-dimensional reciprocal space grid. The unit is rad/A.</span>
+<span class="sd">        Each cell has (2pi/a, 2pi/b) length in reciprocal space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inverse_matrix</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">)</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_grid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_kvec&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kvec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">inverse_matrix</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kvec</span>
+
+    <span class="k">def</span> <span class="nf">_create_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">shift_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">shift_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">shift_x</span><span class="p">,</span> <span class="n">shift_y</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dV</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return volume element of the function space grid in reciprocal space.</span>
+
+<span class="sd">        The unit of dV is A^2.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="FunctionSpace.FT">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace.FT">[docs]</a>
+    <span class="k">def</span> <span class="nf">FT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform a 2-dimensional Fourier Transform on *data*.</span>
+
+<span class="sd">        The volume element of the function space grid in reciprocal space is</span>
+<span class="sd">        multiplied to the result of np.fft.fft2.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (numpy.ndarray):</span>
+<span class="sd">                A 2-dimensional array of shape (Nx, Ny) where each element</span>
+<span class="sd">                represents the amplitude of the function at the respective</span>
+<span class="sd">                grid point in real space.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray:</span>
+<span class="sd">                A 2-dimensional array of shape (Nx, Ny) where each element</span>
+<span class="sd">                represents the amplitude of the function at the respective</span>
+<span class="sd">                grid point in reciprocal space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV</span></div>
+
+
+<div class="viewcode-block" id="FunctionSpace.IFT">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace.IFT">[docs]</a>
+    <span class="k">def</span> <span class="nf">IFT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform an inverse 2-dimensional Fourier Transform on *data*.</span>
+
+<span class="sd">        The volume element of the function space grid in reciprocal space is</span>
+<span class="sd">        divided from the result of np.fft.ifft2.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (numpy.ndarray):</span>
+<span class="sd">                A 2-dimensional array of shape (Nx, Ny) where each element</span>
+<span class="sd">                represents the amplitude of the function at the respective</span>
+<span class="sd">                grid point in reciprocal space.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray:</span>
+<span class="sd">                A 2-dimensional array of shape (Nx, Ny) where each element</span>
+<span class="sd">                represents the amplitude of the function at the respective</span>
+<span class="sd">                grid point in real space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV</span></div>
+
+
+<div class="viewcode-block" id="FunctionSpace.getPropagationTerm">
+<a class="viewcode-back" href="../../lys_em_/space.html#lys_em.space.FunctionSpace.getPropagationTerm">[docs]</a>
+    <span class="k">def</span> <span class="nf">getPropagationTerm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lamb</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">theta_x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">theta_y</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the propagation term of the wave transfer function.</span>
+
+<span class="sd">        The propagation term is calculated from the wave number k and the</span>
+<span class="sd">        propagation distance dz. The wave number k is calculated from the</span>
+<span class="sd">        crystal structure and the wavelength lamb. The propagation distance dz</span>
+<span class="sd">        is given in Angstrom.</span>
+
+<span class="sd">        The wave number k is represented as a 2D array of shape (Nx, Ny) where</span>
+<span class="sd">        each element is the wave number at the respective grid point in</span>
+<span class="sd">        reciprocal space. The unit of k is rad/A.</span>
+
+<span class="sd">        The propagation term is calculated as exp(1j * k * dz).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            lamb (float): The wavelength of the electron beam in Angstrom.</span>
+<span class="sd">            dz (float): The propagation distance in Angstrom.</span>
+<span class="sd">            theta_x (float, optional): The tilt angle of the incident beam along</span>
+<span class="sd">                the x-axis in degree. Defaults to 0.</span>
+<span class="sd">            theta_y (float, optional): The tilt angle of the incident beam along</span>
+<span class="sd">                the y-axis in degree. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is</span>
+<span class="sd">            the propagation term at the respective grid point in reciprocal</span>
+<span class="sd">            space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">k2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k2</span>
+        <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">theta_x</span><span class="p">,</span> <span class="n">theta_y</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+        <span class="n">kx</span><span class="p">,</span> <span class="n">ky</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">tilt</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">kx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">tx</span><span class="p">)</span> <span class="o">+</span> <span class="n">ky</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">ty</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">lamb</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dz</span> <span class="o">*</span> <span class="n">tilt</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

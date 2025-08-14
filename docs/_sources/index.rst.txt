@@ -14,5 +14,6 @@ This library is under developement.
    :maxdepth: 1
    :caption: Contents:
 
+   install
    api
    contributing
