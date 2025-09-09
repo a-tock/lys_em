@@ -71,15 +71,16 @@ class _Slices:
             return 0
         else:
             k = self._sp.kvec
-            q = np.array([k[:, :, 0], k[:, :, 1], self._sp.getArray() * 0]).transpose(1, 2, 0)
+            q = np.array([k[:, :, 0], k[:, :, 1], k[:, :, 1]*0]).transpose(1, 2, 0)
             return structureFactors(crys, q)
 
     def getPotentialTerms(self, beam):
         res = []
+        sig =beam.wavelength * beam.relativisticMass / m
         for c in self._slices:
-            V_k = self._calculatePotential(c) * beam.wavelength * beam.relativisticMass / m  # A^2
-            V_r = self._sp.IFT(V_k * self._sp.mask)
-            V_z = np.exp(1j * V_r)
-            V_z_lim = self._sp.IFT(self._sp.FT(V_z) * self._sp.mask)
+            V_k = self._calculatePotential(c)  # A^2
+            V_r = np.fft.ifft2(V_k * self._sp.mask) / self._sp.dV 
+            V_z = np.exp(1j * sig * V_r)
+            V_z_lim = np.fft.ifft2(np.fft.fft2(V_z) * self._sp.mask)
             res.append(V_z_lim)
         return res

@@ -100,7 +100,7 @@ class CrystalPotential_test(unittest.TestCase):
         N = 1024  # if this value is too small, this test fails because of window function in Function Space.
         sp = FunctionSpace.fromCrystal(self.Au_single, N, N)
         V_k = _Slices(self.Au_single, sp, division=1)._calculatePotential(self.Au_single) * b.wavelength * b.relativisticMass / m  # A^2
-        V_r = sp.IFT(V_k * sp.mask)
+        V_r = np.fft.ifft2(V_k * sp.mask)/ sp.dV
 
         r = np.linspace(0, self.Au_single.a, N, endpoint=False)
 

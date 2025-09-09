@@ -67,12 +67,6 @@ class FunctionSpace:
     def dV(self):
         return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
 
-    def FT(self, data):
-        return np.fft.fft2(data) * self.dV
-
-    def IFT(self, data):
-        return np.fft.ifft2(data) / self.dV
-
     def getPropagationTerm(self, lamb, dz, theta_x=0, theta_y=0):
         k2 = self.k2
         tx, ty = np.array([theta_x, theta_y]) * np.pi / 180
