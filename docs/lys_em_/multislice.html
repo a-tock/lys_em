@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>multislice &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
+    <link rel="prev" title="kinematical" href="kinematical.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crystalPotential.html">crystalPotential</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kinematical.html">kinematical</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">multislice</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.calcMultiSliceDiffraction"><code class="docutils literal notranslate"><span class="pre">calcMultiSliceDiffraction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.makePrecessionTheta"><code class="docutils literal notranslate"><span class="pre">makePrecessionTheta()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Python API</a></li>
+      <li class="breadcrumb-item active">multislice</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/lys_em_/multislice.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-lys_em.multislice">
+<span id="multislice"></span><h1>multislice<a class="headerlink" href="#module-lys_em.multislice" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.calcMultiSliceDiffraction">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">calcMultiSliceDiffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numOfCells</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">division</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[[0,</span> <span class="pre">0]]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnDepth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#calcMultiSliceDiffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.calcMultiSliceDiffraction" title="Link to this definition"></a></dt>
+<dd><p>Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>numOfCells</strong> (<em>int</em>) – The number of unit cells in the z-direction.</p></li>
+<li><p><strong>V</strong> (<em>float</em><em>, </em><em>optional</em>) – Accelerating voltage in volts. Default is 60e3.</p></li>
+<li><p><strong>Nx</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the x-direction. Default is 128.</p></li>
+<li><p><strong>Ny</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the y-direction. Default is 128.</p></li>
+<li><p><strong>division</strong> (<em>str</em><em>, </em><em>optional</em>) – Division strategy for calculating potential. Default is “Auto”.</p></li>
+<li><p><strong>theta_list</strong> (<em>list</em><em>, </em><em>optional</em>) – List of theta angles for diffraction. Default is [[0, 0]].</p></li>
+<li><p><strong>returnDepth</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return depth information in the result. Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The calculated diffraction pattern, optionally including depth information.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DaskWave</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.makePrecessionTheta">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">makePrecessionTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">360</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#makePrecessionTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.makePrecessionTheta" title="Link to this definition"></a></dt>
+<dd><p>Create list of precesssion angles in degree</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> (<em>float</em>) – The precession angle in degree.</p></li>
+<li><p><strong>N</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of sampling points. Default is 90.</p></li>
+<li><p><strong>min</strong> (<em>float</em><em>, </em><em>optional</em>) – The minimum angle in degree. Default is 0.</p></li>
+<li><p><strong>max</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum angle in degree. Default is 360.</p></li>
+<li><p><strong>unit</strong> (<em>'deg'</em><em> or </em><em>'rad'</em><em>, </em><em>optional</em>) – The unit of angles. Default is ‘deg’.</p></li>
+<li><p><strong>angle_offset</strong> (<em>list</em><em> of </em><em>length 2</em><em>, </em><em>optional</em>) – The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), …]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of length 2 sequence</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="kinematical.html" class="btn btn-neutral float-left" title="kinematical" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

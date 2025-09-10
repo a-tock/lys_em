@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lys_em.scatteringFactor &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">lys_em.scatteringFactor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lys_em.scatteringFactor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="scatteringFactor">
+<a class="viewcode-back" href="../../lys_em_/scatteringFactor.html#lys_em.scatteringFactor.scatteringFactor">[docs]</a>
+<span class="k">def</span> <span class="nf">scatteringFactor</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;electron&#39;</span><span class="p">,</span> <span class="n">occupancy</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the atomic scattering factor for a given element and momentum transfer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        Z (int or str): Atomic number of the element or its symbol as a string.</span>
+<span class="sd">        q (float): Momentum transfer in inverse angstroms.</span>
+<span class="sd">        type (str, optional): Type of scattering factor to compute (&#39;electron&#39; by default).</span>
+<span class="sd">        occupancy (float, optional): Occupancy factor to scale the scattering factor (default is 1).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The calculated scattering factor for the specified element and conditions.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Only &#39;electron&#39; type is currently supported.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">__numbers</span><span class="p">[</span><span class="n">Z</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;electron&#39;</span><span class="p">:</span>
+        <span class="n">sf</span> <span class="o">=</span> <span class="n">sf_electron</span><span class="p">[</span><span class="n">Z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">+=</span> <span class="n">sf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">sf</span><span class="p">[</span><span class="mi">4</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span> <span class="o">*</span> <span class="n">occupancy</span></div>
+
+
+
+<div class="viewcode-block" id="projectedPotential">
+<a class="viewcode-back" href="../../lys_em_/scatteringFactor.html#lys_em.scatteringFactor.projectedPotential">[docs]</a>
+<span class="k">def</span> <span class="nf">projectedPotential</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;electron&#39;</span><span class="p">):</span>  <span class="c1"># in A-1</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the projected potential for a given element and distance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        Z (int or str): Atomic number of the element or its symbol as a string.</span>
+<span class="sd">        r (float): Distance in inverse angstroms.</span>
+<span class="sd">        type (str, optional): Type of scattering factor to use (&#39;electron&#39; by default).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The calculated projected potential for the specified element and conditions.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Only &#39;electron&#39; type is currently supported.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">__numbers</span><span class="p">[</span><span class="n">Z</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;electron&#39;</span><span class="p">:</span>
+        <span class="n">sf</span> <span class="o">=</span> <span class="n">sf_electron</span><span class="p">[</span><span class="n">Z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">+=</span> <span class="n">sf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">sf</span><span class="p">[</span><span class="mi">4</span> <span class="o">+</span> <span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">sf</span><span class="p">[</span><span class="mi">4</span> <span class="o">+</span> <span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_create_scatteringFactorFromCsv</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>  <span class="c1"># Used only when sf_electron is recreated.</span>
+    <span class="kn">import</span> <span class="nn">csv</span>
+    <span class="nb">list</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="nb">list</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;result.dat&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">))</span>
+
+<span class="c1"># create_scatteringFactorFromCsv(&#39;ScatteringFactors.csv&#39;)</span>
+
+
+<span class="c1"># from  L.-M. Peng, Micron 30, 625 (1999)</span>
+<span class="n">sf_electron</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;[[0.0367, 0.1269, 0.236, 0.129, 0.5608, 3.7913, 13.5557, 37.7229, 0.0011], [0.0406, 0.1276, 0.1738, 0.0758, 0.314, 2.0952, 7.1369, 19.4462, 0.0003], [0.1198, 0.3952, 1.3794, 1.3889, 0.5908, 6.1114, 36.7672, 117.0314, 0.0029], [0.118, 0.4394, 1.4273, 1.0661, 0.4599, 4.4816, 21.5831, 66.115, 0.0019], [0.1298, 0.52, 1.3767, 0.7666, 0.418, 3.9214, 16.6634, 51.7511, 0.0015], [0.1361, 0.5482, 1.2266, 0.5971, 0.3731, 3.2814, 13.0456, 41.0202, 0.0013], [0.1372, 0.5344, 1.0862, 0.4547, 0.3287, 2.6733, 10.3165, 32.7631, 0.0015], [0.1433, 0.5103, 0.937, 0.3923, 0.3055, 2.2683, 8.2625, 25.6645, 0.0007], [0.1516, 0.5193, 0.822, 0.3081, 0.2888, 2.0619, 7.2628, 22.0262, 0.0005], [0.1575, 0.5041, 0.733, 0.2572, 0.2714, 1.8403, 6.3059, 19.164, 0.0004], [0.3319, 0.9857, 1.4885, 1.9657, 0.495, 4.0855, 31.5107, 118.494, 0.0059], [0.3248, 0.9243, 2.0039, 1.9507, 0.4455, 3.5744, 24.2702, 80.7304, 0.0046], [0.3582, 0.9754, 2.6393, 1.9103, 0.4529, 3.7745, 23.3862, 80.5019, 0.0055], [0.3626, 0.9737, 2.7209, 1.766, 0.4281, 3.557, 19.3905, 64.3334, 0.0044], [0.354, 0.9397, 2.6203, 1.5707, 0.3941, 3.181, 15.6579, 49.5239, 0.0034], [0.3478, 0.9158, 2.5066, 1.3884, 0.3652, 2.8915, 13.0522, 40.1848, 0.0027], [0.3398, 0.8908, 2.3878, 1.2376, 0.3379, 2.619, 11.0684, 33.5378, 0.0021], [0.3409, 0.8966, 2.2636, 1.0786, 0.3229, 2.4778, 9.7408, 28.9354, 0.0016], [0.5658, 2.4151, 2.4655, 3.524, 0.5061, 5.7656, 31.9169, 151.259, 0.0135], [0.5474, 2.2793, 3.1934, 3.8824, 0.47, 5.0494, 29.6928, 109.5608, 0.0111], [0.5389, 2.2102, 3.1187, 3.4302, 0.4446, 4.5701, 26.4597, 98.1283, 0.0098], [0.5398, 2.1568, 2.9961, 3.0751, 0.4281, 4.2236, 24.1928, 90.6685, 0.0091], [0.5412, 2.1063, 2.8525, 2.7967, 0.4132, 3.9256, 22.3625, 84.4689, 0.0084], [0.5478, 2.0737, 2.3527, 1.9866, 0.4032, 3.7014, 20.0893, 87.923, 0.0079], [0.5552, 2.0073, 2.5678, 2.3695, 0.3947, 3.48, 19.5862, 74.9201, 0.0073], [0.5627, 1.9685, 2.4527, 2.175, 0.3859, 3.3103, 18.7003, 71.6638, 0.0069], [0.573, 1.9219, 2.3358, 2.0177, 0.3799, 3.1572, 17.8168, 68.4867, 0.0065], [0.5785, 1.8679, 2.2229, 1.894, 0.3704, 2.9964, 16.8507, 65.2843, 0.0061], [0.5932, 1.8344, 1.808, 1.3586, 0.368, 2.8959, 15.6333, 70.68, 0.0059], [0.5996, 1.7763, 2.024, 1.6598, 0.3602, 2.7665, 15.5278, 60.283, 0.0054], [0.6737, 1.8457, 2.6395, 1.9413, 0.3901, 3.0289, 19.0448, 74.1674, 0.0077], [0.666, 1.7662, 2.8876, 2.051, 0.3741, 2.839, 17.2911, 62.5149, 0.0067], [0.6504, 1.6706, 2.993, 2.0018, 0.355, 2.6169, 15.11, 50.8113, 0.0054], [0.6343, 1.5698, 3.0362, 1.9607, 0.3374, 2.4, 13.1385, 42.4344, 0.0043], [0.6216, 1.4943, 3.0763, 1.8642, 0.3216, 2.2338, 11.7075, 36.7639, 0.0036], [0.624, 1.4352, 3.0847, 1.7511, 0.3144, 2.1394, 10.606, 32.4403, 0.0031], [1.018, 2.8882, 3.5125, 4.3375, 0.485, 5.1504, 26.1762, 155.1291, 0.0202], [1.0127, 2.9403, 3.992, 5.1441, 0.4721, 4.9802, 26.8565, 116.0307, 0.0179], [0.9722, 2.8705, 4.1571, 4.6466, 0.4427, 4.5552, 24.0646, 99.1688, 0.0154], [0.9592, 2.8531, 4.1761, 4.1491, 0.4279, 4.3237, 22.151, 89.7694, 0.0137], [0.9337, 2.8218, 3.9092, 2.988, 0.4074, 4.0572, 19.4778, 85.5042, 0.0121], [0.9334, 2.8581, 3.8278, 2.6302, 0.3996, 3.9476, 18.6153, 82.5062, 0.0112], [0.9282, 2.8832, 3.8985, 3.1237, 0.3894, 3.8131, 18.2715, 74.4844, 0.0107], [0.9175, 2.8691, 3.548, 2.203, 0.3776, 3.6434, 16.4538, 74.459, 0.0097], [0.9046, 2.8679, 3.3997, 2.051, 0.3646, 3.4888, 15.5106, 71.3737, 0.0088], [0.7832, 2.1753, 3.2003, 1.4127, 0.3094, 2.5857, 9.8481, 37.4035, 0.0044], [0.9085, 2.9433, 3.1021, 1.7092, 0.3541, 3.3319, 14.7723, 70.5441, 0.0085], [0.9056, 2.943, 3.1814, 2.1946, 0.3466, 3.2215, 14.7749, 62.3544, 0.0081], [0.966, 3.1971, 3.6243, 2.6351, 0.3648, 3.4534, 18.3358, 75.8859, 0.0111], [0.9481, 3.1011, 3.8863, 2.9142, 0.3518, 3.2474, 17.4348, 66.0384, 0.0099], [0.9323, 2.9938, 4.0829, 2.9578, 0.3405, 3.0545, 16.2843, 56.5387, 0.0084], [0.906, 2.8392, 4.1639, 3.0782, 0.3256, 2.817, 14.6041, 48.088, 0.0071], [0.8912, 2.7442, 4.3316, 2.9328, 0.315, 2.6616, 13.6958, 43.2296, 0.0064], [0.8749, 2.6276, 4.4112, 2.8758, 0.3046, 2.4959, 12.5908, 38.5666, 0.0054], [1.2968, 3.8609, 5.6613, 5.6489, 0.4462, 4.3194, 24.1136, 168.3481, 0.0301], [1.3111, 3.9542, 5.8693, 7.0998, 0.4432, 4.3226, 24.3857, 128.5976, 0.0285], [1.2872, 3.8478, 6.0581, 6.5606, 0.4283, 4.0782, 22.4363, 109.8403, 0.0251], [1.3019, 3.8491, 5.8568, 6.3222, 0.4256, 4.0288, 22.002, 107.6524, 0.0244], [1.3354, 3.8652, 5.3, 6.4296, 0.4305, 4.0368, 22.1273, 117.0334, 0.0259], [1.3473, 3.8589, 5.1226, 6.2264, 0.4266, 3.9844, 21.8395, 114.8891, 0.0247], [1.3631, 3.8462, 4.9578, 6.0228, 0.4253, 3.9386, 21.633, 112.8589, 0.0243], [1.3702, 3.827, 4.8068, 5.8402, 0.4204, 3.8747, 21.384, 110.9527, 0.0238], [1.3963, 3.8201, 4.6869, 5.6321, 0.423, 3.8621, 21.4604, 110.3872, 0.0234], [1.3784, 3.7349, 4.8549, 5.2564, 0.4105, 3.7014, 20.2877, 96.0364, 0.0205], [1.4257, 3.7865, 4.4336, 5.2698, 0.4182, 3.7931, 21.3185, 107.633, 0.0233], [1.4104, 3.6934, 4.3012, 5.1904, 0.4076, 3.6339, 20.3594, 103.6978, 0.0213], [1.3805, 3.5395, 4.4117, 5.0148, 0.3938, 3.4131, 18.4989, 86.9074, 0.0171], [1.4391, 3.6351, 4.0572, 4.9059, 0.4038, 3.5707, 20.0727, 100.4842, 0.0202], [1.4561, 3.6041, 3.936, 4.7711, 0.4028, 3.5468, 19.9521, 98.6682, 0.0197], [1.4617, 3.5735, 3.8563, 4.6254, 0.3986, 3.4988, 19.905, 97.9782, 0.0192], [1.4381, 3.4689, 4.0824, 4.4599, 0.3874, 3.3304, 18.8077, 84.5078, 0.0169], [1.4209, 3.3984, 4.2315, 4.1, 0.3772, 3.2109, 17.772, 76.0916, 0.0153], [1.4163, 3.3456, 4.3281, 3.7406, 0.3714, 3.1289, 16.8719, 70.3632, 0.0141], [1.4109, 3.2997, 4.3698, 3.4408, 0.3653, 3.0517, 15.963, 65.7545, 0.0131], [1.3898, 3.2373, 4.3683, 3.2472, 0.3548, 2.9382, 14.85, 60.6048, 0.0117], [1.3877, 3.2082, 4.3731, 2.9958, 0.3502, 2.8796, 14.1535, 57.3692, 0.011], [1.3783, 3.1637, 4.3549, 2.805, 0.344, 2.7975, 13.364, 54.3356, 0.0101], [1.3489, 3.0674, 4.2095, 2.1738, 0.3322, 2.6601, 12.0128, 50.3882, 0.0091], [1.3413, 3.0559, 4.1659, 2.0022, 0.3262, 2.6076, 11.5043, 48.4954, 0.0084], [1.3592, 3.1327, 4.1897, 2.2748, 0.3265, 2.6458, 11.6919, 47.9347, 0.0084], [1.4735, 3.6368, 4.395, 2.5803, 0.35, 3.0849, 14.9338, 65.0072, 0.0121], [1.47, 3.6387, 4.5674, 2.9103, 0.3452, 3.034, 14.8562, 60.2174, 0.0117], [1.4616, 3.6426, 4.7876, 3.1935, 0.3396, 2.9739, 14.8388, 56.7362, 0.0113], [1.4255, 3.5214, 4.9058, 3.4925, 0.3274, 2.8031, 13.8305, 50.1382, 0.01], [1.417, 3.4829, 5.0951, 3.4639, 0.3224, 2.7289, 13.4904, 46.2094, 0.0089], [1.4001, 3.4082, 5.2516, 3.425, 0.3153, 2.6261, 12.9003, 42.3929, 0.0083], [1.7697, 4.682, 6.6701, 5.5268, 0.3969, 3.995, 23.0274, 154.8886, 0.0316], [1.7704, 4.6854, 6.8034, 7.2352, 0.3938, 3.9313, 22.4168, 120.9717, 0.03], [1.7346, 4.5959, 7.0436, 7.0521, 0.3816, 3.7454, 21.133, 102.1159, 0.0267], [1.7012, 4.5007, 7.2504, 6.6077, 0.3704, 3.5712, 19.8632, 89.3562, 0.0238], [1.7266, 4.6123, 6.7855, 6.3876, 0.3729, 3.6159, 19.6433, 95.272, 0.0248], [1.7417, 4.7063, 6.6509, 5.9929, 0.3729, 3.6337, 19.6579, 95.0805, 0.0246], [1.7327, 4.6782, 6.4465, 5.8528, 0.3683, 3.5375, 18.8556, 91.5521, 0.024], [1.7491, 4.7933, 5.9841, 5.6139, 0.3683, 3.5651, 18.8727, 100.8062, 0.0246], [1.7519, 4.8096, 5.8155, 5.4119, 0.3654, 3.5215, 18.512, 98.8221, 0.0241], [1.7284, 4.7162, 5.9338, 5.2896, 0.3577, 3.3776, 17.7168, 86.4936, 0.0217], [1.7298, 4.7198, 5.7527, 5.1576, 0.3554, 3.3269, 17.3659, 84.3294, 0.0211], [1.6401, 4.3905, 5.4504, 5.4542, 0.3332, 2.983, 14.6892, 73.0723, 0.0258]]&#39;</span><span class="p">)</span>
+<span class="c1"># sf_electron[78]=[2.3880, 4.2259, 2.6886, 1.2551, 42.8656, 9.7430, 2.2641, 0.3067,0]</span>
+
+<span class="n">__numbers</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;{</span><span class="se">\&#39;</span><span class="s1">Rn</span><span class="se">\&#39;</span><span class="s1">: 86, </span><span class="se">\&#39;</span><span class="s1">Zr</span><span class="se">\&#39;</span><span class="s1">: 40, </span><span class="se">\&#39;</span><span class="s1">W</span><span class="se">\&#39;</span><span class="s1">: 74, </span><span class="se">\&#39;</span><span class="s1">I</span><span class="se">\&#39;</span><span class="s1">: 53, </span><span class="se">\&#39;</span><span class="s1">At</span><span class="se">\&#39;</span><span class="s1">: 85, </span><span class="se">\&#39;</span><span class="s1">B</span><span class="se">\&#39;</span><span class="s1">: 5, </span><span class="se">\&#39;</span><span class="s1">U</span><span class="se">\&#39;</span><span class="s1">: 92, </span><span class="se">\&#39;</span><span class="s1">In</span><span class="se">\&#39;</span><span class="s1">: 49, </span><span class="se">\&#39;</span><span class="s1">N</span><span class="se">\&#39;</span><span class="s1">: 7, </span><span class="se">\&#39;</span><span class="s1">Pu</span><span class="se">\&#39;</span><span class="s1">: 94, </span><span class="se">\&#39;</span><span class="s1">Si</span><span class="se">\&#39;</span><span class="s1">: 14, </span><span class="se">\&#39;</span><span class="s1">Am</span><span class="se">\&#39;</span><span class="s1">: 95, </span><span class="se">\&#39;</span><span class="s1">Sn</span><span class="se">\&#39;</span><span class="s1">: 50, </span><span class="se">\&#39;</span><span class="s1">Cf</span><span class="se">\&#39;</span><span class="s1">: 98, </span><span class="se">\&#39;</span><span class="s1">Ta</span><span class="se">\&#39;</span><span class="s1">: 73, </span><span class="se">\&#39;</span><span class="s1">P</span><span class="se">\&#39;</span><span class="s1">: 15, </span><span class="se">\&#39;</span><span class="s1">Kr</span><span class="se">\&#39;</span><span class="s1">: 36, </span><span class="se">\&#39;</span><span class="s1">C</span><span class="se">\&#39;</span><span class="s1">: 6, </span><span class="se">\&#39;</span><span class="s1">Co</span><span class="se">\&#39;</span><span class="s1">: 27, </span><span class="se">\&#39;</span><span class="s1">Nb</span><span class="se">\&#39;</span><span class="s1">: 41, </span><span class="se">\&#39;</span><span class="s1">V</span><span class="se">\&#39;</span><span class="s1">: 23, </span><span class="se">\&#39;</span><span class="s1">Sr</span><span class="se">\&#39;</span><span class="s1">: 38, </span><span class="se">\&#39;</span><span class="s1">Pt</span><span class="se">\&#39;</span><span class="s1">: 78, </span><span class="se">\&#39;</span><span class="s1">F</span><span class="se">\&#39;</span><span class="s1">: 9, </span><span class="se">\&#39;</span><span class="s1">Gd</span><span class="se">\&#39;</span><span class="s1">: 64, </span><span class="se">\&#39;</span><span class="s1">Ti</span><span class="se">\&#39;</span><span class="s1">: 22, </span><span class="se">\&#39;</span><span class="s1">K</span><span class="se">\&#39;</span><span class="s1">: 19, </span><span class="se">\&#39;</span><span class="s1">Eu</span><span class="se">\&#39;</span><span class="s1">: 63, </span><span class="se">\&#39;</span><span class="s1">Tc</span><span class="se">\&#39;</span><span class="s1">: 43, </span><span class="se">\&#39;</span><span class="s1">Rh</span><span class="se">\&#39;</span><span class="s1">: 45, </span><span class="se">\&#39;</span><span class="s1">S</span><span class="se">\&#39;</span><span class="s1">: 16, </span><span class="se">\&#39;</span><span class="s1">Ho</span><span class="se">\&#39;</span><span class="s1">: 67, </span><span class="se">\&#39;</span><span class="s1">Th</span><span class="se">\&#39;</span><span class="s1">: 90, </span><span class="se">\&#39;</span><span class="s1">Hf</span><span class="se">\&#39;</span><span class="s1">: 72, </span><span class="se">\&#39;</span><span class="s1">Ir</span><span class="se">\&#39;</span><span class="s1">: 77, </span><span class="se">\&#39;</span><span class="s1">Fe</span><span class="se">\&#39;</span><span class="s1">: 26, </span><span class="se">\&#39;</span><span class="s1">Au</span><span class="se">\&#39;</span><span class="s1">: 79, </span><span class="se">\&#39;</span><span class="s1">Tm</span><span class="se">\&#39;</span><span class="s1">: 69, </span><span class="se">\&#39;</span><span class="s1">Er</span><span class="se">\&#39;</span><span class="s1">: 68, </span><span class="se">\&#39;</span><span class="s1">Cd</span><span class="se">\&#39;</span><span class="s1">: 48, </span><span class="se">\&#39;</span><span class="s1">Cm</span><span class="se">\&#39;</span><span class="s1">: 96, </span><span class="se">\&#39;</span><span class="s1">Ru</span><span class="se">\&#39;</span><span class="s1">: 44, </span><span class="se">\&#39;</span><span class="s1">Yb</span><span class="se">\&#39;</span><span class="s1">: 70, </span><span class="se">\&#39;</span><span class="s1">Nd</span><span class="se">\&#39;</span><span class="s1">: 60, </span><span class="se">\&#39;</span><span class="s1">Pa</span><span class="se">\&#39;</span><span class="s1">: 91, </span><span class="se">\&#39;</span><span class="s1">Ga</span><span class="se">\&#39;</span><span class="s1">: 31, </span><span class="se">\&#39;</span><span class="s1">Np</span><span class="se">\&#39;</span><span class="s1">: 93, </span><span class="se">\&#39;</span><span class="s1">Al</span><span class="se">\&#39;</span><span class="s1">: 13, </span><span class="se">\&#39;</span><span class="s1">Re</span><span class="se">\&#39;</span><span class="s1">: 75, </span><span class="se">\&#39;</span><span class="s1">Pr</span><span class="se">\&#39;</span><span class="s1">: 59, </span><span class="se">\&#39;</span><span class="s1">Ra</span><span class="se">\&#39;</span><span class="s1">: 88, </span><span class="se">\&#39;</span><span class="s1">Lu</span><span class="se">\&#39;</span><span class="s1">: 71, </span><span class="se">\&#39;</span><span class="s1">Y</span><span class="se">\&#39;</span><span class="s1">: 39, </span><span class="se">\&#39;</span><span class="s1">Pm</span><span class="se">\&#39;</span><span class="s1">: 61, </span><span class="se">\&#39;</span><span class="s1">Mn</span><span class="se">\&#39;</span><span class="s1">: 25, </span><span class="se">\&#39;</span><span class="s1">Li</span><span class="se">\&#39;</span><span class="s1">: 3, </span><span class="se">\&#39;</span><span class="s1">Se</span><span class="se">\&#39;</span><span class="s1">: 34, </span><span class="se">\&#39;</span><span class="s1">Sm</span><span class="se">\&#39;</span><span class="s1">: 62, </span><span class="se">\&#39;</span><span class="s1">Ce</span><span class="se">\&#39;</span><span class="s1">: 58, </span><span class="se">\&#39;</span><span class="s1">Zn</span><span class="se">\&#39;</span><span class="s1">: 30, </span><span class="se">\&#39;</span><span class="s1">Bi</span><span class="se">\&#39;</span><span class="s1">: 83, </span><span class="se">\&#39;</span><span class="s1">Pd</span><span class="se">\&#39;</span><span class="s1">: 46, </span><span class="se">\&#39;</span><span class="s1">Ni</span><span class="se">\&#39;</span><span class="s1">: 28, </span><span class="se">\&#39;</span><span class="s1">Cs</span><span class="se">\&#39;</span><span class="s1">: 55, </span><span class="se">\&#39;</span><span class="s1">Mg</span><span class="se">\&#39;</span><span class="s1">: 12, </span><span class="se">\&#39;</span><span class="s1">Cr</span><span class="se">\&#39;</span><span class="s1">: 24, </span><span class="se">\&#39;</span><span class="s1">Dy</span><span class="se">\&#39;</span><span class="s1">: 66, </span><span class="se">\&#39;</span><span class="s1">Rb</span><span class="se">\&#39;</span><span class="s1">: 37, </span><span class="se">\&#39;</span><span class="s1">Ca</span><span class="se">\&#39;</span><span class="s1">: 20, </span><span class="se">\&#39;</span><span class="s1">Te</span><span class="se">\&#39;</span><span class="s1">: 52, </span><span class="se">\&#39;</span><span class="s1">Ar</span><span class="se">\&#39;</span><span class="s1">: 18, </span><span class="se">\&#39;</span><span class="s1">As</span><span class="se">\&#39;</span><span class="s1">: 33, </span><span class="se">\&#39;</span><span class="s1">Cu</span><span class="se">\&#39;</span><span class="s1">: 29, </span><span class="se">\&#39;</span><span class="s1">Ac</span><span class="se">\&#39;</span><span class="s1">: 89, </span><span class="se">\&#39;</span><span class="s1">Cl</span><span class="se">\&#39;</span><span class="s1">: 17, </span><span class="se">\&#39;</span><span class="s1">Ne</span><span class="se">\&#39;</span><span class="s1">: 10, </span><span class="se">\&#39;</span><span class="s1">Mo</span><span class="se">\&#39;</span><span class="s1">: 42, </span><span class="se">\&#39;</span><span class="s1">Be</span><span class="se">\&#39;</span><span class="s1">: 4, </span><span class="se">\&#39;</span><span class="s1">Sc</span><span class="se">\&#39;</span><span class="s1">: 21, </span><span class="se">\&#39;</span><span class="s1">Na</span><span class="se">\&#39;</span><span class="s1">: 11, </span><span class="se">\&#39;</span><span class="s1">Ag</span><span class="se">\&#39;</span><span class="s1">: 47, </span><span class="se">\&#39;</span><span class="s1">Xe</span><span class="se">\&#39;</span><span class="s1">: 54, </span><span class="se">\&#39;</span><span class="s1">Tb</span><span class="se">\&#39;</span><span class="s1">: 65, </span><span class="se">\&#39;</span><span class="s1">H</span><span class="se">\&#39;</span><span class="s1">: 1, </span><span class="se">\&#39;</span><span class="s1">Ge</span><span class="se">\&#39;</span><span class="s1">: 32, </span><span class="se">\&#39;</span><span class="s1">Po</span><span class="se">\&#39;</span><span class="s1">: 84, </span><span class="se">\&#39;</span><span class="s1">Br</span><span class="se">\&#39;</span><span class="s1">: 35, </span><span class="se">\&#39;</span><span class="s1">He</span><span class="se">\&#39;</span><span class="s1">: 2, </span><span class="se">\&#39;</span><span class="s1">O</span><span class="se">\&#39;</span><span class="s1">: 8, </span><span class="se">\&#39;</span><span class="s1">Tl</span><span class="se">\&#39;</span><span class="s1">: 81, </span><span class="se">\&#39;</span><span class="s1">Bk</span><span class="se">\&#39;</span><span class="s1">: 97, </span><span class="se">\&#39;</span><span class="s1">Fr</span><span class="se">\&#39;</span><span class="s1">: 87, </span><span class="se">\&#39;</span><span class="s1">Sb</span><span class="se">\&#39;</span><span class="s1">: 51, </span><span class="se">\&#39;</span><span class="s1">Pb</span><span class="se">\&#39;</span><span class="s1">: 82, </span><span class="se">\&#39;</span><span class="s1">Ba</span><span class="se">\&#39;</span><span class="s1">: 56, </span><span class="se">\&#39;</span><span class="s1">Hg</span><span class="se">\&#39;</span><span class="s1">: 80, </span><span class="se">\&#39;</span><span class="s1">La</span><span class="se">\&#39;</span><span class="s1">: 57, </span><span class="se">\&#39;</span><span class="s1">Os</span><span class="se">\&#39;</span><span class="s1">: 76, </span><span class="se">\&#39;</span><span class="s1">Void</span><span class="se">\&#39;</span><span class="s1">: 0}&#39;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

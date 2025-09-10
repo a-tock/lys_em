@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kinematical &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="multislice" href="multislice.html" />
+    <link rel="prev" title="crystalPotential" href="crystalPotential.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crystalPotential.html">crystalPotential</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kinematical</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.calcKinematicalDiffraction"><code class="docutils literal notranslate"><span class="pre">calcKinematicalDiffraction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.debyeWallerFactors"><code class="docutils literal notranslate"><span class="pre">debyeWallerFactors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.formFactors"><code class="docutils literal notranslate"><span class="pre">formFactors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.structureFactors"><code class="docutils literal notranslate"><span class="pre">structureFactors()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multislice.html">multislice</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Python API</a></li>
+      <li class="breadcrumb-item active">kinematical</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/lys_em_/kinematical.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-lys_em.kinematical">
+<span id="kinematical"></span><h1>kinematical<a class="headerlink" href="#module-lys_em.kinematical" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.kinematical.calcKinematicalDiffraction">
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">calcKinematicalDiffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TEM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numOfCells</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#calcKinematicalDiffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.calcKinematicalDiffraction" title="Link to this definition"></a></dt>
+<dd><p>Calculate the kinematical diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>TEM</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The transmission electron microscope settings.</p></li>
+<li><p><strong>numOfCells</strong> (<em>int</em>) – The number of unit cells in the z-direction.</p></li>
+<li><p><strong>Nx</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the x-direction. Default is 128.</p></li>
+<li><p><strong>Ny</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the y-direction. Default is 128.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The intensity of the kinematical diffraction pattern.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.kinematical.debyeWallerFactors">
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">debyeWallerFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#debyeWallerFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.debyeWallerFactors" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Debye-Waller factor for each atom in the crystal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>k</strong> (<em>array_like</em>) – The k vectors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Debye-Waller factors for each atom in the crystal.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.kinematical.formFactors">
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">formFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#formFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.formFactors" title="Link to this definition"></a></dt>
+<dd><p>Calculate the form factors for a given crystal structure and k vectors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>N</strong> (<em>array_like</em>) – The number of unit cells in each direction.</p></li>
+<li><p><strong>K</strong> (<em>array_like</em>) – The k vectors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The form factors for the given crystal structure and k vectors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.kinematical.structureFactors">
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">structureFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'atoms'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#structureFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.structureFactors" title="Link to this definition"></a></dt>
+<dd><p>Calculate the structure factors for a given crystal structure and k vectors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>k</strong> (<em>array_like</em>) – The k vectors.</p></li>
+<li><p><strong>sum</strong> (<em>str</em>) – The type of summation to be performed. Can be “atoms” (default) or “elements”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The structure factors for the given crystal structure and k vectors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="crystalPotential.html" class="btn btn-neutral float-left" title="crystalPotential" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="multislice.html" class="btn btn-neutral float-right" title="multislice" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

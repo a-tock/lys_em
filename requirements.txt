@@ -1,1 +1,4 @@
-
+numpy >= 1.26.4
+pyFFTW >= 0.13.1
+dask >= 2024.6.2
+lys-python >= 0.3.3

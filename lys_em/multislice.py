@@ -7,6 +7,22 @@ from . import fft, ifft, TEM, FunctionSpace, CrystalPotential
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
+    """
+    Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.
+
+    Args:
+        c (CrystalStructure): The crystal structure.
+        numOfCells (int): The number of unit cells in the z-direction.
+        V (float, optional): Accelerating voltage in volts. Default is 60e3.
+        Nx (int, optional): Number of grid points along the x-direction. Default is 128.
+        Ny (int, optional): Number of grid points along the y-direction. Default is 128.
+        division (str, optional): Division strategy for calculating potential. Default is "Auto".
+        theta_list (list, optional): List of theta angles for diffraction. Default is [[0, 0]].
+        returnDepth (bool, optional): Whether to return depth information in the result. Default is True.
+
+    Returns:
+        DaskWave: The calculated diffraction pattern, optionally including depth information.
+    """
     sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
 
     # prepare potential
@@ -75,14 +91,19 @@ def _apply(phi, pots, P_k, returnDepth=False):
         return phi
 
 
-def makePrecessionTheta(alpha, N=90,min=0, max=360, unit="deg", angle_offset=[0,0]):
+def makePrecessionTheta(alpha, N=90, min=0, max=360, unit="deg", angle_offset=[0, 0]):
     """
     Create list of precesssion angles in degree
+
     Args:
         alpha(float): The precession angle in degree.
-        N(int): The number of sampling points.
-        unit('deg' or 'rad'): The unit of angles.
-    Return:
+        N(int, optional): The number of sampling points. Default is 90.
+        min(float, optional): The minimum angle in degree. Default is 0.
+        max(float, optional): The maximum angle in degree. Default is 360.
+        unit('deg' or 'rad', optional): The unit of angles. Default is 'deg'.
+        angle_offset(list of length 2, optional): The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].
+
+    Returns:
         list of length 2 sequence: The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), ...]
     """
     if unit == "deg":

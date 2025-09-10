@@ -3,8 +3,17 @@ import numpy as np
 
 class FunctionSpace:
     """
-    Create 2 dimensional rectangular grid function space.
+    FunctionSpace represents a 2-dimensional parallelogram grid function space.
     The length of the rectangular space is defined by a and b. Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
+
+    Args:
+        a (float): Length of the unit cell along the a-vector.
+        b (float): Length of the unit cell along the b-vector.
+        c (float): Length of the unit cell along the optical axis direction
+        gamma (float, optional): Angle between the unit cell vectors in degrees. Default is 90.
+        Nx (int, optional): Number of grid points along the a-vector. Default is 128.
+        Ny (int, optional): Number of grid points along the b-vector. Default is 128.
+        Nz (int, optional): Number of divisions along the optical axis direction.
     """
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
         self._unit = np.array([[a,0], [b*np.cos(gamma*np.pi/180),b*np.sin(gamma*np.pi/180)]])
@@ -13,11 +22,33 @@ class FunctionSpace:
         
     @staticmethod 
     def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):
+        """
+        Create a FunctionSpace instance from a CrystalStructure instance.
+
+        Args:
+            crys (CrystalStructure): The CrystalStructure instance to create the FunctionSpace from.
+            Nx (int): The number of grid points along the a-vector.
+            Ny (int): The number of grid points along the b-vector.
+            ncells (int): The number of unit cells along the optical axis direction.
+            division ('Auto' or int): The number of divisions of unit cell along optical axis direction.
+
+        Returns:
+            FunctionSpace: The created FunctionSpace instance.
+        """
         if division == "Auto":
             division = int(crys.unit[2][2] / 2)
         return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division*ncells)
 
     def getArray(self):
+        """
+        Generate a normalized 2D array representing the function space grid.
+
+        Returns:
+            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
+            initialized to the value 1/(Nx*Ny), representing a uniform distribution
+            over the function space.
+        """
+
         return np.ones((self._N[0], self._N[1])) / self._N[0] / self._N[1]
 
     @property
@@ -32,8 +63,8 @@ class FunctionSpace:
         return self._mask
 
     def _getMax(self):
-        k2_row0 = self.k2[self._N[0]//2, :]
-        k2_col0 = self.k2[:, self._N[1]//2]
+        k2_row0 = self.k2[self._N[0] // 2, :]
+        k2_col0 = self.k2[:, self._N[1] // 2]
         return min(min(k2_row0), min(k2_col0))
 
     @property
@@ -49,7 +80,7 @@ class FunctionSpace:
     @property
     def kvec(self):
         """
-        Return 2 dimensional reciprocal space grid. The unit is rad/A.
+        Return 2-dimensional reciprocal space grid. The unit is rad/A.
         Each cell has (2pi/a, 2pi/b) length in reciprocal space.
         """
         inverse_matrix = 2 * np.pi * np.linalg.inv(self._unit)
@@ -59,10 +90,10 @@ class FunctionSpace:
         return self._kvec
 
     def _create_grid(self):
-        x = np.arange(-self._N[0]//2, self._N[0]//2)
-        shift_x = np.roll(x, self._N[0]//2)
-        y = np.arange(-self._N[1]//2, self._N[1]//2)
-        shift_y = np.roll(y, self._N[1]//2)
+        x = np.arange(-self._N[0] // 2, self._N[0] // 2)
+        shift_x = np.roll(x, self._N[0] // 2)
+        y = np.arange(-self._N[1] // 2, self._N[1] // 2)
+        shift_y = np.roll(y, self._N[1] // 2)
         grid = np.array(np.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
         return grid
     
@@ -80,9 +111,37 @@ class FunctionSpace:
 
     @property
     def dV(self):
-        return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
+        """
+        Return volume element of the function space grid in reciprocal space.
+
+        The unit of dV is A^2.
+        """        return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
 
     def getPropagationTerm(self, lamb, theta_x=0, theta_y=0):
+        """
+        Return the propagation term of the wave transfer function.
+
+        The propagation term is calculated from the wave number k and the
+        propagation distance dz. The wave number k is calculated from the
+        crystal structure and the wavelength lamb. The propagation distance dz
+        is given in Angstrom.
+
+        The wave number k is represented as a 2D array of shape (Nx, Ny) where
+        each element is the wave number at the respective grid point in
+        reciprocal space. The unit of k is rad/A.
+
+        The propagation term is calculated as exp(1j * k * dz).
+
+        Args:
+            lamb (float): The wavelength of the electron beam in Angstrom.
+            theta_x (float, optional): The tilt angle of the incident beam along the x-axis in degree. Defaults to 0.
+            theta_y (float, optional): The tilt angle of the incident beam along the y-axis in degree. Defaults to 0.
+
+        Returns:
+            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
+            the propagation term at the respective grid point in reciprocal
+            space.
+        """
         k2 = self.k2
         tx, ty = np.array([theta_x, theta_y]) * np.pi / 180
         kx, ky = self.kvec.transpose(2, 1, 0)[0].T, self.kvec.transpose(2, 1, 0)[1].T
