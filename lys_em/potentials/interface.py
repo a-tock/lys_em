@@ -1,3 +1,5 @@
+import numpy as np
+
 class PotentialInterface:
     def __add__(self, obj):
         return _CombinedPotential(self, obj)

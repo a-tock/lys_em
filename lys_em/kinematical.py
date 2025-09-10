@@ -99,11 +99,11 @@ def calcKinematicalDiffraction(crys, TEM, numOfCells, Nx=128, Ny=128):
     Returns:
         array_like: The intensity of the kinematical diffraction pattern.
     """
-    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells)
+    sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells)
     kx, ky = sp.kvec[:,:,0], sp.kvec[:,:,1]
 
     dx, dy, dz = -TEM.beamDirection * TEM.k_in
     kz = dz - np.sqrt(TEM.k_in**2 - (kx - dx)**2 - (ky - dy)**2)
     k = np.concatenate((sp.kvec, kz[:, :, np.newaxis]), axis=2)
 
-    return abs(structureFactors(c, k) * formFactors(c, [1, 1, numOfCells], k))**2
+    return abs(structureFactors(crys, k) * formFactors(crys, [1, 1, numOfCells], k))**2

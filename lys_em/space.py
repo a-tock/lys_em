@@ -115,7 +115,8 @@ class FunctionSpace:
         Return volume element of the function space grid in reciprocal space.
 
         The unit of dV is A^2.
-        """        return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
+        """        
+        return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
 
     def getPropagationTerm(self, lamb, theta_x=0, theta_y=0):
         """
