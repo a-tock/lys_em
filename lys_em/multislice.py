@@ -3,7 +3,7 @@ import dask.array as da
 import dask
 
 from lys import DaskWave
-from . import fft, ifft, TEM, CrystalPotential, FunctionSpace
+from . import fft, ifft, TEM, FunctionSpace, CrystalPotential
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
@@ -48,10 +48,11 @@ def __calc_single(sp, pot, tem, thetas, returnDepth):
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
     res = []
-    pot_data = pot.get(tem)
+    phase = pot.getPhase(tem)
+    pot = [ifft(fft(p) * sp.mask) for p in np.exp(1j*phase)]
     for tx, ty in thetas:
         P_k = sp.getPropagationTerm(tem.wavelength, tx, ty)
-        phi = _apply(sp.getArray(), pot_data, P_k*sp.mask, returnDepth)
+        phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
 

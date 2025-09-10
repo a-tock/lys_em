@@ -6,8 +6,8 @@ from lys_mat import CrystalStructure,Atom
 from lys_em import TEM, FunctionSpace
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
-from lys_em.multislice import calcMultiSliceDiffraction, calcMultiSliceDiffraction2, _apply
-from lys_em.crystalPotential import _Slices
+from lys_em.multislice import calcMultiSliceDiffraction, _apply
+from lys_em.potentials.crystalPotential import _Slices
 
 
 class MultiSlice_test(unittest.TestCase):
@@ -32,9 +32,8 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_TaTe2(self):
         # Compare result with pre-calculated results at 2023/12/14.
-        res = calcMultiSliceDiffraction2(self.Au, 10, returnDepth=False)
-        assert_array_almost_equal(res[:,:,0].data, np.load(self.path+"/Au.npy"))
-        return
+        res = calcMultiSliceDiffraction(self.Au, 10, returnDepth=False)
+        assert_array_almost_equal(res.compute()[:,:,0].data, np.load(self.path+"/Au.npy"))
     
         TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
         res = calcMultiSliceDiffraction(TaTe2, 90, V=0.75e6, Nx=512, Ny=256, returnDepth=False, theta_list=[[-0.80437, 0]])

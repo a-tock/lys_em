@@ -1,29 +1,30 @@
 import numpy as np
 from lys_mat import CrystalStructure
 
-from . import fft, ifft
-from .kinematical import structureFactors 
-from .consts import m
+from ..FFT import fft, ifft
+from ..kinematical import structureFactors 
+from ..consts import m
+
+from .interface import PotentialInterface
 
 
-class CrystalPotential:
+class CrystalPotential(PotentialInterface):
     def __init__(self, space, crys):
         self._sp = space
         self._crys = crys
 
-    def get(self, beam):
-        V_rs = _Slices(self._crys, self._sp).getPotentialTerms(beam)
-        phase = _calcPhase(V_rs, self._sp.kvec, self._crys.unit[2][0], self._crys.unit[2][1], int(self._sp.c / self._crys.unit[2][2]))
-        return np.array([ifft(fft(p) * self._sp.mask) for p in np.exp(1j*phase)])
+    def getPhase(self, beam):
+        V_ks = _Slices(self._crys, self._sp).getPotentialTerms(beam)
+        return _calcPhase(V_ks, self._sp, self._sp.kvec, self._crys.unit[2][0], self._crys.unit[2][1], int(self._sp.c / self._crys.unit[2][2]))
     
 
-def _calcPhase(V_rs, kvec, dx, dy, numOfSlices):
+def _calcPhase(V_ks, sp, kvec, dx, dy, numOfSlices):
     phase1 = np.exp(1j*kvec.dot([dx, dy]))
     potentials = []
     for n in range(numOfSlices):
-        phase = 1 if n == 0 else phase * phase1
-        for V_r in V_rs:
-            potentials.append(ifft(fft(V_r) * phase))
+        phase = sp.mask if n == 0 else phase * phase1
+        for V_k in V_ks:
+            potentials.append(ifft(V_k * phase / sp.dV))
     return np.array(potentials)
 
 
@@ -40,13 +41,8 @@ class _Slices:
             self._slices.append(CrystalStructure(crys.cell, atomsList))
 
     def getPotentialTerms(self, beam):
-        res = []
         sig =beam.wavelength * beam.relativisticMass / m
-        for c in self._slices:
-            V_k = self._calculatePotential(c)  # A^2
-            V_r = ifft(V_k * self._sp.mask) / self._sp.dV 
-            res.append(sig *V_r)
-        return res
+        return [sig * self._calculatePotential(c) for c in self._slices]
     
     def _calculatePotential(self, crys):
         if len(crys.atoms) == 0:
