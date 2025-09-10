@@ -1,4 +1,5 @@
 import numpy as np
+from .FFT import fft, ifft
 from .consts import m, e, hbar, kB, h, c
 
 
@@ -15,13 +16,11 @@ class TEM(object):
         direction (list or array-like, optional): The direction vector of the electron beam. Default is [0, 0, -1].
     """
 
-    def __init__(self, acc, convergence=0, divergence=np.inf, defocus=0, Cs=0, direction=[0, 0, -1]):
+    def __init__(self, acc, convergence=0, divergence=np.inf, Cs=0):
         self.__acc = acc
         self._convergence = convergence
         self._divergence = divergence
-        self._defocus = defocus
         self._Cs = Cs
-        self._direction = np.array(direction) / np.linalg.norm(direction)
 
     @property
     def wavelength(self):
@@ -44,15 +43,15 @@ class TEM(object):
         """
         return 2 * np.pi * self._convergence / self.wavelength
 
-    def chi(self, k):
-        """
-        Return net phase error from spherical aberration and defocus.
+    @property
+    def Cs(self):
+        '''
+        Get spherical aberration coefficient in angstrom.
 
-        Args:
-            k(sequence of length 2 array): The wavenumber.
-        """
-        alpha = self.wavelength * k / (2 * np.pi)
-        return 2 * np.pi / self.wavelength * (0.25 * self._Cs * alpha**4 - 0.5 * self._defocus * alpha**2)
+        Returns:
+            float: Spherical aberration coefficient
+        '''
+        return self._Cs
 
     @property
     def relativisticMass(self):
@@ -64,6 +63,13 @@ class TEM(object):
         '''
         return m + e * self.__acc / c**2
 
+
+class TEMParameter:
+    def __init__(self, defocus=0, tilt=[0, 0], position=[0, 0]):
+        self._defocus = defocus
+        self._tilt = np.radians(tilt)
+        self._position = position
+
     @property
     def beamDirection(self):
         """
@@ -72,4 +78,42 @@ class TEM(object):
         Returns:
             array: The direction vector with shape (3,).
         """
-        return self._direction
+        return np.array([np.sin(self._tilt[0]) * np.cos(self._tilt[1]), np.sin(self._tilt[0]) * np.sin(self._tilt[1]), -np.cos(self._tilt[0])])
+
+    def beamTilt(self, type="polar"):
+        """
+        Return the tilt angles of the electron beam in radians.
+
+        Returns:
+            array: The tilt angles with shape (2,).
+        """
+
+        if type == "polar":
+            return self._tilt
+        elif type == "cartesian":
+            x, y, z = self.beamDirection
+            return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])
+
+    def chi(self, tem, k):
+        """
+        Return net phase error from spherical aberration and defocus.
+
+        Args:
+            k(sequence of length 2 array): The wavenumber.
+        """
+        alpha = tem.wavelength * k / (2 * np.pi)
+        return 2 * np.pi / tem.wavelength * (0.25 * tem.Cs * alpha**4 - 0.5 * self._defocus * alpha**2)
+
+    def getWaveFunction(self, sp, tem):
+        """
+        Generate a normalized 2D array representing the function space grid.
+
+        Returns:
+            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
+            initialized to the value 1/(Nx*Ny), representing a uniform distribution
+            over the function space.
+        """
+
+        kwave = np.where(sp.k2 <= tem.k_max**2, np.exp(1j * sp.kvec.dot(self._position)), 0)
+        wave = ifft(kwave)
+        return wave / np.sum(np.abs(wave)**2)

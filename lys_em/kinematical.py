@@ -85,7 +85,7 @@ def formFactors(c, N, K):
     return sh
 
 
-def calcKinematicalDiffraction(crys, TEM, numOfCells, Nx=128, Ny=128):
+def calcKinematicalDiffraction(crys, TEM, TEMParam, numOfCells, Nx=128, Ny=128):
     """
     Calculate the kinematical diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.
 
@@ -100,9 +100,9 @@ def calcKinematicalDiffraction(crys, TEM, numOfCells, Nx=128, Ny=128):
         array_like: The intensity of the kinematical diffraction pattern.
     """
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells)
-    kx, ky = sp.kvec[:,:,0], sp.kvec[:,:,1]
+    kx, ky = sp.kvec[:, :, 0], sp.kvec[:, :, 1]
 
-    dx, dy, dz = -TEM.beamDirection * TEM.k_in
+    dx, dy, dz = -TEMParam.beamDirection * TEM.k_in
     kz = dz - np.sqrt(TEM.k_in**2 - (kx - dx)**2 - (ky - dy)**2)
     k = np.concatenate((sp.kvec, kz[:, :, np.newaxis]), axis=2)
 

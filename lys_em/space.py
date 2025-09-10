@@ -15,12 +15,13 @@ class FunctionSpace:
         Ny (int, optional): Number of grid points along the b-vector. Default is 128.
         Nz (int, optional): Number of divisions along the optical axis direction.
     """
+
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
-        self._unit = np.array([[a,0], [b*np.cos(gamma*np.pi/180),b*np.sin(gamma*np.pi/180)]])
+        self._unit = np.array([[a, 0], [b * np.cos(gamma * np.pi / 180), b * np.sin(gamma * np.pi / 180)]])
         self._c = c
         self._N = np.array([Nx, Ny, Nz])
-        
-    @staticmethod 
+
+    @staticmethod
     def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):
         """
         Create a FunctionSpace instance from a CrystalStructure instance.
@@ -37,19 +38,7 @@ class FunctionSpace:
         """
         if division == "Auto":
             division = int(crys.unit[2][2] / 2)
-        return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division*ncells)
-
-    def getArray(self):
-        """
-        Generate a normalized 2D array representing the function space grid.
-
-        Returns:
-            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
-            initialized to the value 1/(Nx*Ny), representing a uniform distribution
-            over the function space.
-        """
-
-        return np.ones((self._N[0], self._N[1])) / self._N[0] / self._N[1]
+        return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division * ncells)
 
     @property
     def mask(self):
@@ -96,7 +85,7 @@ class FunctionSpace:
         shift_y = np.roll(y, self._N[1] // 2)
         grid = np.array(np.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
         return grid
-    
+
     @property
     def N(self):
         return self._N
@@ -115,8 +104,8 @@ class FunctionSpace:
         Return volume element of the function space grid in reciprocal space.
 
         The unit of dV is A^2.
-        """        
-        return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
+        """
+        return np.sqrt(np.linalg.norm(self._unit[0])**2 * np.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
 
     def getPropagationTerm(self, lamb, theta_x=0, theta_y=0):
         """
