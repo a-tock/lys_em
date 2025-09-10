@@ -14,18 +14,16 @@ class kinematical(unittest.TestCase):
         c = CrystalStructure.loadFrom(cif)
 
         res = []
-        for alpha in np.linspace(-70,70,140*3+1):
-            tem = TEM(200e3, direction=[np.sin(alpha/180*np.pi),0,-np.cos(alpha/180*np.pi)])
+        for alpha in np.linspace(-70, 70, 140 * 3 + 1):
+            tem = TEM(200e3, tilt=[alpha, 0])
             I = calcKinematicalDiffraction(c, tem, 1, Nx=15, Ny=15)
-            res.append(I[2,0])
+            res.append(I[2, 0])
         return
 
         i = np.array((0, 2, 0))
         q = i.dot(c.inv)
-        alpha = np.linspace(-70, 70, 140*3+1)
-        qz = np.linalg.norm(q)*np.tan(alpha/180*np.pi)
-        q_list = [q+[0,0,z] for z in qz]
+        alpha = np.linspace(-70, 70, 140 * 3 + 1)
+        qz = np.linalg.norm(q) * np.tan(alpha / 180 * np.pi)
+        q_list = [q + [0, 0, z] for z in qz]
         I = abs(structureFactors(c, q_list))**2
         print(alpha)
-
-
