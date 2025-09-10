@@ -15,7 +15,7 @@ def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, 
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     pot = CrystalPotential(sp, crys)
-    params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, nphi / 360)]
+    params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
     res = abs(np.fft.fft2(multislice(sp, pot, tem, params), axes=(1, 2)))**2
     if sum:
         return res.sum(axis=0)
