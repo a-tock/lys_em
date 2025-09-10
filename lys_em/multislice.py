@@ -3,7 +3,7 @@ import dask.array as da
 import dask
 
 from lys import DaskWave
-from . import fft, ifft, TEM, FunctionSpace, CrystalPotential
+from . import fft, ifft, TEM, TEMParameter, FunctionSpace, CrystalPotential
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
@@ -30,9 +30,9 @@ def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="A
     pot = CrystalPotential(sp, c)
 
     # prepare list of thetas
-    ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
-    shape = (int(len(theta_list)/ncore), Nx, Ny, sp.N[2]) if returnDepth else (int(len(theta_list)/ncore), Nx, Ny)
-    thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
+    ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave, "client") else 1
+    shape = (int(len(theta_list) / ncore), Nx, Ny, sp.N[2]) if returnDepth else (int(len(theta_list) / ncore), Nx, Ny)
+    thetas = [theta_list[shape[0] * i:shape[0] * (i + 1)] for i in range(ncore)]
 
     # Dstribute all tasks to each worker
     delays = [dask.delayed(__calc_single, traverse=False)(sp, pot, tem, t, returnDepth) for t in thetas]
@@ -51,24 +51,17 @@ def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="A
         return res
 
 
-def calcMultiSliceDiffraction2(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
-    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
-    tem = TEM(V)
-    pot = CrystalPotential(sp, c)  
-    return __calc_single(sp, pot, tem, theta_list, returnDepth).transpose(1,2,0)
-
-
-def __calc_single(sp, pot, tem, thetas, returnDepth):
+def multislice(sp, pot, tem, params, returnDepth=False):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
     res = []
     phase = pot.getPhase(tem)
-    pot = [ifft(fft(p) * sp.mask) for p in np.exp(1j*phase)]
-    for tx, ty in thetas:
-        P_k = sp.getPropagationTerm(tem.wavelength, tx, ty)
-        phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
+    pot = [ifft(fft(p) * sp.mask) for p in np.exp(1j * phase)]
+    for param in params:
+        P_k = sp.getPropagationTerm(tem.wavelength, *param.beamTilt(type="cartesian"))
+        phi = _apply(param.getWaveFunction(sp, tem), pot, P_k * sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
 
