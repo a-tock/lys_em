@@ -4,3 +4,5 @@ from .space import FunctionSpace
 from .scatteringFactor import scatteringFactor
 from .kinematical import debyeWallerFactors, formFactors, structureFactors, calcKinematicalDiffraction
 from .potentials import CrystalPotential
+from .multislice import multislice
+from .functions import calcSADiffraction
