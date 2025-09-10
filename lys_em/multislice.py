@@ -7,33 +7,39 @@ from . import fft, ifft, TEM, CrystalPotential, FunctionSpace
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
-    sp = FunctionSpace.fromCrystal(c, Nx, Ny)
+    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
 
     # prepare potential
     tem = TEM(V)
-    pot = CrystalPotential(sp, tem, c, numOfCells, division = division)
+    pot = CrystalPotential(sp, c)
 
     # prepare list of thetas
     ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave,"client") else 1
-    shape = (int(len(theta_list)/ncore), Nx, Ny, len(pot)) if returnDepth else  (int(len(theta_list)/ncore), Nx, Ny)
+    shape = (int(len(theta_list)/ncore), Nx, Ny, sp.N[2]) if returnDepth else (int(len(theta_list)/ncore), Nx, Ny)
     thetas = [theta_list[shape[0]*i:shape[0]*(i+1)] for i in range(ncore)]
 
     # Dstribute all tasks to each worker
     delays = [dask.delayed(__calc_single, traverse=False)(sp, pot, tem, t, returnDepth) for t in thetas]
 
-    # shape: (ncore, theta, thickness, nx, ny)
     res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
     x, y = np.linspace(0, c.a, Nx), np.linspace(0, c.b, Ny)
-    z = np.linspace(0, pot.dz * len(pot), len(pot))
+    z = np.linspace(0, sp.c, sp.N[2])
 
     if returnDepth:
-        # shape is (ncore, thetas, thickness, nx, ny)
-        res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(Nx, Ny, len(pot), -1), x, y, z, None)
+        # shape is (mcore, thetas, thickness, nx, ny)
+        res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(*sp.N, -1), x, y, z, None)
         return res
     else:
-        # shape is (ncore, thetas, nx, ny)
+        # shape is (thetas, ncore, nx, ny)
         res = DaskWave(da.stack(res).transpose(2, 3, 0, 1).reshape(Nx, Ny, -1), x, y, None)
         return res
+
+
+def calcMultiSliceDiffraction2(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
+    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
+    tem = TEM(V)
+    pot = CrystalPotential(sp, c)  
+    return __calc_single(sp, pot, tem, theta_list, returnDepth).transpose(1,2,0)
 
 
 def __calc_single(sp, pot, tem, thetas, returnDepth):
@@ -42,9 +48,10 @@ def __calc_single(sp, pot, tem, thetas, returnDepth):
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
     res = []
+    pot_data = pot.get(tem)
     for tx, ty in thetas:
-        P_k = sp.getPropagationTerm(tem.wavelength, pot.dz, tx, ty)
-        phi = _apply(sp.getArray(), pot, P_k*sp.mask, returnDepth)
+        P_k = sp.getPropagationTerm(tem.wavelength, tx, ty)
+        phi = _apply(sp.getArray(), pot_data, P_k*sp.mask, returnDepth)
         res.append(phi)
     return np.array(res)
 

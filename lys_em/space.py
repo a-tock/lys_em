@@ -6,13 +6,16 @@ class FunctionSpace:
     Create 2 dimensional rectangular grid function space.
     The length of the rectangular space is defined by a and b. Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
     """
-    def __init__(self, a, b, gamma=90, Nx=128, Ny=128):
+    def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
         self._unit = np.array([[a,0], [b*np.cos(gamma*np.pi/180),b*np.sin(gamma*np.pi/180)]])
-        self._N = np.array([Nx, Ny])
+        self._c = c
+        self._N = np.array([Nx, Ny, Nz])
         
     @staticmethod 
-    def fromCrystal(crys, Nx, Ny):
-        return FunctionSpace(crys.a, crys.b, crys.gamma,Nx, Ny)
+    def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):
+        if division == "Auto":
+            division = int(crys.unit[2][2] / 2)
+        return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division*ncells)
 
     def getArray(self):
         return np.ones((self._N[0], self._N[1])) / self._N[0] / self._N[1]
@@ -62,14 +65,26 @@ class FunctionSpace:
         shift_y = np.roll(y, self._N[1]//2)
         grid = np.array(np.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
         return grid
+    
+    @property
+    def N(self):
+        return self._N
+
+    @property
+    def c(self):
+        return self._c
+
+    @property
+    def dz(self):
+        return self._c / self._N[2]
 
     @property
     def dV(self):
         return np.sqrt(np.linalg.norm(self._unit[0])**2*np.linalg.norm(self._unit[1])**2-self._unit[0].dot(self._unit[1])**2)  / self._N[0] / self._N[1]
 
-    def getPropagationTerm(self, lamb, dz, theta_x=0, theta_y=0):
+    def getPropagationTerm(self, lamb, theta_x=0, theta_y=0):
         k2 = self.k2
         tx, ty = np.array([theta_x, theta_y]) * np.pi / 180
         kx, ky = self.kvec.transpose(2, 1, 0)[0].T, self.kvec.transpose(2, 1, 0)[1].T
         tilt = 1j * (kx * np.tan(tx) + ky * np.tan(ty)) - 1j * lamb * k2 / 4 / np.pi
-        return np.exp(dz * tilt)
+        return np.exp(self.dz * tilt)

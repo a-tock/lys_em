@@ -18,9 +18,6 @@ class kinematical(unittest.TestCase):
             tem = TEM(200e3, direction=[np.sin(alpha/180*np.pi),0,-np.cos(alpha/180*np.pi)])
             I = calcKinematicalDiffraction(c, tem, 1, Nx=15, Ny=15)
             res.append(I[2,0])
-        import matplotlib.pyplot as plt
-        plt.plot(res)
-        plt.show()
         return
 
         i = np.array((0, 2, 0))

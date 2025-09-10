@@ -53,7 +53,7 @@ def formFactors(c, N, K):
 
 
 def calcKinematicalDiffraction(c, TEM, numOfCells, Nx=128, Ny=128):
-    sp = FunctionSpace.fromCrystal(c, Nx, Ny)
+    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells)
     kx, ky = sp.kvec[:,:,0], sp.kvec[:,:,1]
 
     dx, dy, dz = -TEM.beamDirection * TEM.k_in
