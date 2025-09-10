@@ -9,6 +9,14 @@ from .interface import PotentialInterface
 
 
 class CrystalPotential(PotentialInterface):
+    """
+    Represents the potential of a crystal for electron microscopy simulations.
+
+    Args:
+        space (FunctionSpace): The simulation space object containing spatial parameters.
+        crys (CrystalStructure): The crystal object containing unit cell and lattice information.
+    """
+
     def __init__(self, space, crys):
         self._sp = space
         self._crys = crys
