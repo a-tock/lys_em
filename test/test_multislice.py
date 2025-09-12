@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, CrystalPotential, calcSADiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace, CrystalPotential, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import calcMultiSliceDiffraction, _apply, multislice
@@ -64,6 +64,12 @@ class MultiSlice_test(unittest.TestCase):
         calc_trigonal = calcSADiffraction(200e3, self.VTe2_trigonal, 50, Nx=216, Ny=216, division=1)
         relative_error = np.abs(calc_ortho[1, 1] - calc_trigonal[1, 0]) / np.abs(calc_ortho[1, 1])
         self.assertTrue(np.all(relative_error < 1e-4))
+
+    def test_PED(self):
+        # Compare result with pre-calculated results at 2025/9/12.
+        res = calcPrecessionDiffraction(200e3, self.Au, 50, 2, 360, Nx=128, Ny=128, division=1)
+        ans = np.load(self.path + "/Au_PED.npy")
+        assert_array_almost_equal(res / res[0][0], ans / ans[0][0])
 
 
 class CrystalPotential_test(unittest.TestCase):
