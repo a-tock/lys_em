@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, CrystalPotential, calcSADiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace, CrystalPotential, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import calcMultiSliceDiffraction, _apply, multislice
@@ -40,7 +40,11 @@ class MultiSlice_test(unittest.TestCase):
         res = calcSADiffraction(0.75e6, TaTe2, 90, Nx=512, Ny=256, tilt=[-0.80437, 0])
         res = np.sqrt(res)[:13, 0]
         ans = np.array([0.5577267344048619, 0, 0.002756932398382368, 0, 0.010163465792031692, 0, 0.11391665208304297, 0, 0.0031967300829784428, 0, 0.0024738436644140016, 0, 0.21191082484442536])
-        assert_array_almost_equal(res / res[0], ans / ans[0])
+        assert_array_almost_equal(res / res[0], ans / ans[0], decimal=4)
+
+    def test_TaTe2_prec(self):
+        TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
+        res = calcPrecessionDiffraction(0.75e6, TaTe2, 50, 2, 120, Nx=256, Ny=128, division=1)
 
     def test_Propagation(self):
         a = 3

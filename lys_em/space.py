@@ -1,5 +1,6 @@
 import numpy as np
-
+import jax
+import jax.numpy as jnp
 
 class FunctionSpace:
     """
@@ -46,9 +47,9 @@ class FunctionSpace:
         Return mask pattern whose diameter is identical with 2/3 of min(kx, ky).
         """
         if not hasattr(self, "_mask"):
-            k = np.sqrt(self.k2)
-            max = np.sqrt(self._getMax())
-            self._mask = np.where(k > max * 2 / 3, 0, 1)
+            k = jnp.sqrt(self.k2)
+            max = jnp.sqrt(self._getMax())
+            self._mask = jnp.where(k > max * 2 / 3, 0, 1)
         return self._mask
 
     def _getMax(self):
@@ -72,19 +73,25 @@ class FunctionSpace:
         Return 2-dimensional reciprocal space grid. The unit is rad/A.
         Each cell has (2pi/a, 2pi/b) length in reciprocal space.
         """
-        inverse_matrix = 2 * np.pi * np.linalg.inv(self._unit)
-        grid = self._create_grid()
         if not hasattr(self, "_kvec"):
-            self._kvec = np.dot(grid, inverse_matrix.T)
+            inverse_matrix = 2 * np.pi * jnp.linalg.inv(self._unit)
+            grid = self._create_grid()
+            self._kvec = jnp.dot(grid, inverse_matrix.T)
         return self._kvec
 
     def _create_grid(self):
-        x = np.arange(-self._N[0] // 2, self._N[0] // 2)
-        shift_x = np.roll(x, self._N[0] // 2)
-        y = np.arange(-self._N[1] // 2, self._N[1] // 2)
-        shift_y = np.roll(y, self._N[1] // 2)
-        grid = np.array(np.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
+        x = jnp.arange(-self._N[0] // 2, self._N[0] // 2)
+        shift_x = jnp.roll(x, self._N[0] // 2)
+        y = jnp.arange(-self._N[1] // 2, self._N[1] // 2)
+        shift_y = jnp.roll(y, self._N[1] // 2)
+        grid = jnp.array(jnp.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
         return grid
+
+    def fft(self, data):
+        return jnp.fft.fft2(data) * self.dV
+
+    def ifft(self, data):
+        return jnp.fft.ifft2(data*self.mask) / self.dV
 
     @property
     def N(self):
@@ -107,33 +114,3 @@ class FunctionSpace:
         """
         return np.sqrt(np.linalg.norm(self._unit[0])**2 * np.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
 
-    def getPropagationTerm(self, lamb, theta_x=0, theta_y=0):
-        """
-        Return the propagation term of the wave transfer function.
-
-        The propagation term is calculated from the wave number k and the
-        propagation distance dz. The wave number k is calculated from the
-        crystal structure and the wavelength lamb. The propagation distance dz
-        is given in Angstrom.
-
-        The wave number k is represented as a 2D array of shape (Nx, Ny) where
-        each element is the wave number at the respective grid point in
-        reciprocal space. The unit of k is rad/A.
-
-        The propagation term is calculated as exp(1j * k * dz).
-
-        Args:
-            lamb (float): The wavelength of the electron beam in Angstrom.
-            theta_x (float, optional): The tilt angle of the incident beam along the x-axis in degree. Defaults to 0.
-            theta_y (float, optional): The tilt angle of the incident beam along the y-axis in degree. Defaults to 0.
-
-        Returns:
-            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
-            the propagation term at the respective grid point in reciprocal
-            space.
-        """
-        k2 = self.k2
-        tx, ty = np.array([theta_x, theta_y]) * np.pi / 180
-        kx, ky = self.kvec.transpose(2, 1, 0)[0].T, self.kvec.transpose(2, 1, 0)[1].T
-        tilt = 1j * (kx * np.tan(tx) + ky * np.tan(ty)) - 1j * lamb * k2 / 4 / np.pi
-        return np.exp(self.dz * tilt)

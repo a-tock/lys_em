@@ -1,5 +1,4 @@
 import numpy as np
-from .FFT import fft, ifft
 from .consts import m, e, hbar, kB, h, c
 
 
@@ -79,6 +78,10 @@ class TEMParameter:
             array: The direction vector with shape (3,).
         """
         return np.array([np.sin(self._tilt[0]) * np.cos(self._tilt[1]), np.sin(self._tilt[0]) * np.sin(self._tilt[1]), -np.cos(self._tilt[0])])
+    
+    @property
+    def position(self):
+        return np.array(self._position)
 
     def beamTilt(self, type="polar"):
         """
@@ -104,16 +107,3 @@ class TEMParameter:
         alpha = tem.wavelength * k / (2 * np.pi)
         return 2 * np.pi / tem.wavelength * (0.25 * tem.Cs * alpha**4 - 0.5 * self._defocus * alpha**2)
 
-    def getWaveFunction(self, sp, tem):
-        """
-        Generate a normalized 2D array representing the function space grid.
-
-        Returns:
-            numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
-            initialized to the value 1/(Nx*Ny), representing a uniform distribution
-            over the function space.
-        """
-
-        kwave = np.where(sp.k2 <= tem.k_max**2, np.exp(1j * sp.kvec.dot(self._position)), 0)
-        wave = ifft(kwave)
-        return wave / np.sum(np.abs(wave)**2)

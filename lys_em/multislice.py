@@ -1,9 +1,7 @@
-import numpy as np
-import dask.array as da
-import dask
+import jax
+import jax.numpy as jnp
 
-from lys import DaskWave
-from . import fft, ifft, TEM, TEMParameter, FunctionSpace, CrystalPotential
+from . import TEM, FunctionSpace, CrystalPotential
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
@@ -51,58 +49,76 @@ def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="A
         return res
 
 
-def multislice(sp, pot, tem, params, returnDepth=False):
+def multislice(sp, pot, tem, params):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
-    res = []
-    phase = pot.getPhase(tem)
-    pot = [ifft(fft(p) * sp.mask) for p in np.exp(1j * phase)]
-    for param in params:
-        P_k = sp.getPropagationTerm(tem.wavelength, *param.beamTilt(type="cartesian"))
-        phi = _apply(param.getWaveFunction(sp, tem), pot, P_k * sp.mask, returnDepth)
-        res.append(phi)
-    return np.array(res)
+    P_k = getPropagationTerm(sp, tem, params) # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem, params) # shape (len(params), Nx, Ny)
+    return jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
 
 
-def _apply(phi, pots, P_k, returnDepth=False):
+def getPropagationTerm(sp, tem, params):
     """
-    Calculate multislice simulation.
-    if returnDepth==True, ndarray of (thickness, Nx, Ny) dimension will returnd, otherwise the shape will be (Nx, Ny).
-    Returns:
-        numpy array: see above.
-    """
-    res = []
-    for V_r in pots:
-        phi = ifft(P_k * fft(phi * V_r))
-        if returnDepth:
-            res.append(phi)
-    if returnDepth:
-        return np.array(res)
-    else:
-        return phi
+    Return the propagation term of the wave transfer function.
 
+    The propagation term is calculated from the wave number k and the
+    propagation distance dz. The wave number k is calculated from the
+    crystal structure and the wavelength lamb. The propagation distance dz
+    is given in Angstrom.
 
-def makePrecessionTheta(alpha, N=90, min=0, max=360, unit="deg", angle_offset=[0, 0]):
-    """
-    Create list of precesssion angles in degree
+    The wave number k is represented as a 2D array of shape (Nx, Ny) where
+    each element is the wave number at the respective grid point in
+    reciprocal space. The unit of k is rad/A.
+
+    The propagation term is calculated as exp(1j * k * dz).
 
     Args:
-        alpha(float): The precession angle in degree.
-        N(int, optional): The number of sampling points. Default is 90.
-        min(float, optional): The minimum angle in degree. Default is 0.
-        max(float, optional): The maximum angle in degree. Default is 360.
-        unit('deg' or 'rad', optional): The unit of angles. Default is 'deg'.
-        angle_offset(list of length 2, optional): The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].
+        lamb (float): The wavelength of the electron beam in Angstrom.
+        theta_x (float, optional): The tilt angle of the incident beam along the x-axis in degree. Defaults to 0.
+        theta_y (float, optional): The tilt angle of the incident beam along the y-axis in degree. Defaults to 0.
 
     Returns:
-        list of length 2 sequence: The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), ...]
+        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
+        the propagation term at the respective grid point in reciprocal
+        space.
     """
-    if unit == "deg":
-        alpha = alpha * np.pi / 180
-    theta = np.linspace(2 * np.pi / 360 * min, 2 * np.pi / 360 * max, N, endpoint=False)
-    result = np.arctan(np.tan(alpha) * np.array([np.cos(theta), np.sin(theta)]))
-    if unit == "deg":
-        result = result * 180 / np.pi
-    return result.T + np.array(angle_offset)
+    @jax.jit
+    def _propagationTerm(k, mask, lamb, theta, dz):
+        tilt = 1j * (k.dot(jnp.tan(theta))) - 1j * lamb * jnp.linalg.norm(k, axis=2)**2 / 4 / jnp.pi
+        return jnp.exp(dz * tilt) * mask
+
+    thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in params])
+    f = jax.vmap(_propagationTerm, in_axes=[None, None, None, 0, None])
+    return f(sp.kvec, sp.mask, tem.wavelength, thetas, sp.dz)
+
+
+def getWaveFunction(sp, tem, params, probe=None):
+    """
+    Generate a normalized 2D array representing the function space grid.
+
+    Returns:
+        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
+        initialized to the value 1/(Nx*Ny), representing a uniform distribution
+        over the function space.
+    """
+    @jax.jit
+    def _shiftProbe(probe, pos):
+        wave = jnp.fft.ifft2(probe * jnp.exp(1j * sp.kvec.dot(pos)))
+        return wave / jnp.sum(jnp.abs(wave)**2)
+    
+    if probe is None:
+        probe = jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, 1, 0)
+
+    pos = jnp.array([p.position for p in params])
+    f = jax.vmap(_shiftProbe, in_axes=[None, 0])
+    return f(probe, pos)
+
+
+@jax.jit
+def _apply(phi, pots, P_k):
+    def body(phi, V_r):
+        return jnp.fft.ifft2(jnp.fft.fft2(phi*V_r) * P_k), None
+    phi, _ = jax.lax.scan(body, phi, pots)
+    return phi

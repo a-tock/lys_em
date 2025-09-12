@@ -1,22 +1,40 @@
-import numpy as np
 import itertools
+
+import numpy as np
+import jax
+import jax.numpy as jnp
+
 from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice
 
 
 def calcSADiffraction(V, crys, numOfCells, Nx=128, Ny=128, division="Auto", tilt=[0, 0]):
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys)
+    pot = CrystalPotential(sp, crys).get(sp, tem)
     params = [TEMParameter(tilt=tilt)]
-    return abs(np.fft.fft2(multislice(sp, pot, tem, params)[0]))**2
+    return diffraction(multislice(sp, pot, tem, params))[0]
 
 
 def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto", sum=True):
+    import time
+
+    start = time.time()
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys)
+    pot = CrystalPotential(sp, crys).get(sp, tem)
     params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
-    res = abs(np.fft.fft2(multislice(sp, pot, tem, params), axes=(1, 2)))**2
+
+    print(time.time()-start)
+
+    res = diffraction(multislice(sp, pot, tem, params)).sum(axis=0).block_until_ready()
+    print(time.time()-start)
+    return
+
+    def R(p):
+        return jnp.sum((res - diff(multislice(sp, p, tem, params)))**2)
+    g = jax.grad(R)
+    print("calc total", time.time()-start)
+
     if sum:
         return res.sum(axis=0)
     else:
@@ -45,3 +63,7 @@ def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, divisio
     res = abs(np.fft.fft2(multislice(sp, pot, tem, params), axes=(1, 2)))**2
     res.reshape(scanx, scany, Nx, Ny)
     return res
+
+
+def diffraction(data):
+    return abs(jnp.fft.fft2(data))**2
