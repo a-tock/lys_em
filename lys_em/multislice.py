@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-from . import TEM, FunctionSpace, CrystalPotential
+from . import TEM, TEMParameter, FunctionSpace, CrystalPotential
 
 
 def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
@@ -88,6 +88,9 @@ def getPropagationTerm(sp, tem, params):
     def _propagationTerm(k, mask, lamb, theta, dz):
         tilt = 1j * (k.dot(jnp.tan(theta))) - 1j * lamb * jnp.linalg.norm(k, axis=2)**2 / 4 / jnp.pi
         return jnp.exp(dz * tilt) * mask
+    
+    if isinstance(params, TEMParameter):
+        return getPropagationTerm(sp, tem, [params])[0]
 
     thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in params])
     f = jax.vmap(_propagationTerm, in_axes=[None, None, None, 0, None])
@@ -107,6 +110,9 @@ def getWaveFunction(sp, tem, params, probe=None):
     def _shiftProbe(probe, pos):
         wave = jnp.fft.ifft2(probe * jnp.exp(1j * sp.kvec.dot(pos)))
         return wave / jnp.sum(jnp.abs(wave)**2)
+    
+    if isinstance(params, TEMParameter):
+        return getWaveFunction(sp, tem, [params])[0]
     
     if probe is None:
         probe = jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, 1, 0)

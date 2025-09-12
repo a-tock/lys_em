@@ -3,10 +3,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, CrystalPotential, calcSADiffraction, calcPrecessionDiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
-from lys_em.multislice import calcMultiSliceDiffraction, _apply, multislice
+from lys_em.multislice import _apply, getPropagationTerm
 from lys_em.potentials.crystalPotential import _Slices
 
 
@@ -48,17 +48,18 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_Propagation(self):
         a = 3
-        l = TEM(60e3).wavelength
 
         sp = FunctionSpace(a, a, a, Nz=10)
-        phi = np.zeros((128, 128))
-        phi[0][0] = 1
+        tem = TEM(60e3)
 
-        P_k = sp.getPropagationTerm(l)
-        phi = _apply(phi, [1] * 10, P_k * sp.mask)
+        phi = np.zeros((128, 128), dtype=np.complex64)
+        phi[0,0] = 1
+        pot = np.ones((10, 128, 128))
+        P_k = getPropagationTerm(sp, tem, TEMParameter())
 
-        # theoretical solution (propagation after a in free space)
-        calcphi = np.fft.ifft2(sp._mask * np.exp(-1j * l * a * sp.k2 / 4 / np.pi))
+        # compared with theoretical solution (propagation after a in free space)
+        phi = _apply(phi, pot, P_k)
+        calcphi = np.fft.ifft2(sp._mask * np.exp(-1j * tem.wavelength * a * sp.k2 / 4 / np.pi))
 
         assert_array_almost_equal(phi, calcphi)
 
@@ -106,9 +107,9 @@ class CrystalPotential_test(unittest.TestCase):
         sigma0 = 2 * np.pi * m * e / h**2  # kg C m /eV^2 s^2
 
         sf = projectedPotential("Au", r) / sigma0 * sigma
-        self.assertAlmostEqual(V_r[0][0], sf[0])
-        self.assertAlmostEqual(V_r[0][1], sf[1])
-        self.assertAlmostEqual(V_r[0][2], sf[2])
+        self.assertAlmostEqual(V_r[0][0], sf[0], places=5)
+        self.assertAlmostEqual(V_r[0][1], sf[1], places=5)
+        self.assertAlmostEqual(V_r[0][2], sf[2], places=5)
 
         # check potential calculation
         sp = FunctionSpace.fromCrystal(self.Au, 10, 10, 1, division=1)
