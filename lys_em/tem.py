@@ -92,7 +92,7 @@ class TEMParameter:
         """
 
         if type == "polar":
-            return self._tilt
+            return np.degrees(self._tilt)
         elif type == "cartesian":
             x, y, z = self.beamDirection
             return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])

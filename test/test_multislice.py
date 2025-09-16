@@ -70,6 +70,12 @@ class MultiSlice_test(unittest.TestCase):
         relative_error = np.abs(calc_ortho[1, 1] - calc_trigonal[1, 0]) / np.abs(calc_ortho[1, 1])
         self.assertTrue(np.all(relative_error < 1e-4))
 
+    def test_PED(self):
+        # Compare result with pre-calculated results at 2025/9/12.
+        res = calcPrecessionDiffraction(200e3, self.Au, 50, 2, 360, Nx=128, Ny=128, division=1)
+        ans = np.load(self.path + "/Au_PED.npy")
+        assert_array_almost_equal(res / res[0][0], ans / ans[0][0])
+
 
 class CrystalPotential_test(unittest.TestCase):
     path = "test/DataFiles"
