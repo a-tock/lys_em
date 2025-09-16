@@ -1,61 +1,17 @@
 import jax
 import jax.numpy as jnp
 
-from . import TEM, TEMParameter, FunctionSpace, CrystalPotential
+from . import TEM, TEMParameter, FunctionSpace
 
 
-def calcMultiSliceDiffraction(c, numOfCells, V=60e3, Nx=128, Ny=128, division="Auto", theta_list=[[0, 0]], returnDepth=True):
-    """
-    Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.
 
-    Args:
-        c (CrystalStructure): The crystal structure.
-        numOfCells (int): The number of unit cells in the z-direction.
-        V (float, optional): Accelerating voltage in volts. Default is 60e3.
-        Nx (int, optional): Number of grid points along the x-direction. Default is 128.
-        Ny (int, optional): Number of grid points along the y-direction. Default is 128.
-        division (str, optional): Division strategy for calculating potential. Default is "Auto".
-        theta_list (list, optional): List of theta angles for diffraction. Default is [[0, 0]].
-        returnDepth (bool, optional): Whether to return depth information in the result. Default is True.
-
-    Returns:
-        DaskWave: The calculated diffraction pattern, optionally including depth information.
-    """
-    sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
-
-    # prepare potential
-    tem = TEM(V)
-    pot = CrystalPotential(sp, c)
-
-    # prepare list of thetas
-    ncore = len(DaskWave.client.ncores()) if hasattr(DaskWave, "client") else 1
-    shape = (int(len(theta_list) / ncore), Nx, Ny, sp.N[2]) if returnDepth else (int(len(theta_list) / ncore), Nx, Ny)
-    thetas = [theta_list[shape[0] * i:shape[0] * (i + 1)] for i in range(ncore)]
-
-    # Dstribute all tasks to each worker
-    delays = [dask.delayed(__calc_single, traverse=False)(sp, pot, tem, t, returnDepth) for t in thetas]
-
-    res = [da.from_delayed(d, shape, dtype=complex) for d in delays]
-    x, y = np.linspace(0, c.a, Nx), np.linspace(0, c.b, Ny)
-    z = np.linspace(0, sp.c, sp.N[2])
-
-    if returnDepth:
-        # shape is (mcore, thetas, thickness, nx, ny)
-        res = DaskWave(da.stack(res).transpose(3, 4, 2, 0, 1).reshape(*sp.N, -1), x, y, z, None)
-        return res
-    else:
-        # shape is (thetas, ncore, nx, ny)
-        res = DaskWave(da.stack(res).transpose(2, 3, 0, 1).reshape(Nx, Ny, -1), x, y, None)
-        return res
-
-
-def multislice(sp, pot, tem, params):
+def multislice(sp, pot, tem, params, probe=None):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
     P_k = getPropagationTerm(sp, tem, params) # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem, params) # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem, params, probe=probe) # shape (len(params), Nx, Ny)
     return jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
 
 

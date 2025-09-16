@@ -2,6 +2,8 @@ import numpy as np
 from . import scatteringFactor
 from .space import FunctionSpace
 
+import jax
+import jax.numpy as jnp
 
 def _scatteringFactors(c, k):
     k4p = np.linalg.norm(k, axis=-1) / (4 * np.pi)
@@ -24,20 +26,20 @@ def debyeWallerFactors(c, k):
     """
 
     k = np.array(k)
-    inv = np.linalg.norm(c.inv / 2 / np.pi, axis=1)
-    T = np.array([[inv[0], 0, 0], [0, inv[1], 0], [0, 0, inv[2]]])
-    R = T.dot(c.unit)
-    U = np.array([R.T.dot(at.Uani).dot(R) for at in c.atoms])
-    if len(k.shape) == 1:
-        kUk = np.einsum("i,nij,j->n", k, U, k)
-    if len(k.shape) == 2:
-        kUk = np.einsum("ki,nij,kj->kn", k, U, k)
-    if len(k.shape) == 3:
-        kUk = np.einsum("kqi,nij,kqj->kqn", k, U, k)
-    return np.exp(-kUk / 2)
+    Uani = np.array([at.Uani for at in c.atoms])
+    return _debyeWallerFactor_impl(c.unit, Uani, k)
 
 
-def structureFactors(c, k, sum="atoms"):
+@jax.jit
+def _debyeWallerFactor_impl(unit, Uani, k):
+    inv = jnp.linalg.inv(unit.T)
+    R = jnp.diag(jnp.linalg.norm(inv, axis=1)).dot(unit)
+    U = jnp.einsum("ij,njk,kl->nil", R.T, Uani, R)
+    kUk = jnp.einsum("...i,nij,...j->...n", k, U, k)
+    return jnp.exp(-kUk / 2)
+
+
+def structureFactors(c, k):
     """
     Calculate the structure factors for a given crystal structure and k vectors.
 
@@ -49,18 +51,21 @@ def structureFactors(c, k, sum="atoms"):
     Returns:
         array_like: The structure factors for the given crystal structure and k vectors.
     """
-    r_i = c.getAtomicPositions()
-    f_i = _scatteringFactors(c, k)
-    T_i = debyeWallerFactors(c, k)
-    kr_i = np.tensordot(k, r_i, [-1, -1])
-    st = f_i * T_i * np.exp(1j * kr_i)
-    if sum == "atoms":
-        st = np.sum(st, axis=-1)
-    if sum == "elements":
-        st = st.transpose(*([k.ndim - 1] + list(range(k.ndim - 1))))
-        st = np.array([np.sum([s for s, at in zip(st, c.atoms) if at.Element == element], axis=0) for element in c.getElements()])
-        st = st.transpose(*(list(range(k.ndim))[1:] + [0]))
-    return st
+    f = structureFactorFunc(c, k)
+    return f(c.unit, c.getAtomicPositions(), np.array([at.Uani for at in c.atoms]))
+
+
+def structureFactorFunc(c, k):
+    if len(c.atoms) == 0:
+        return jax.jit(lambda unit, position, Uani: k[...,0]*0)
+    f_i = jnp.array(_scatteringFactors(c, k))
+    @jax.jit
+    def _func(unit, position, Uani):
+        T_i = _debyeWallerFactor_impl(unit, Uani, k)
+        kr_i = jnp.tensordot(k, position, (-1, -1))
+        st = f_i * T_i * jnp.exp(1j * kr_i)
+        return st.sum(axis=-1)
+    return _func
 
 
 def formFactors(c, N, K):

@@ -10,35 +10,40 @@ from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice
 def calcSADiffraction(V, crys, numOfCells, Nx=128, Ny=128, division="Auto", tilt=[0, 0]):
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys).get(sp, tem)
+    pot = CrystalPotential(sp, crys).get(tem)
     params = [TEMParameter(tilt=tilt)]
+
     return diffraction(multislice(sp, pot, tem, params))[0]
 
 
 def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto", sum=True):
-    import time
+    tem = TEM(V)
+    sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
+    pot = CrystalPotential(sp, crys).get(tem)
+    params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
 
+    return diffraction(multislice(sp, pot, tem, params)).sum(axis=0)
+
+
+def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto"):
+    import time
     start = time.time()
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys).get(sp, tem)
+    cpot = CrystalPotential(sp, crys)
     params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
 
-    print(time.time()-start)
-
-    res = diffraction(multislice(sp, pot, tem, params)).sum(axis=0).block_until_ready()
+    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
     print(time.time()-start)
     return
 
-    def R(p):
-        return jnp.sum((res - diff(multislice(sp, p, tem, params)))**2)
-    g = jax.grad(R)
-    print("calc total", time.time()-start)
+    def R(unit, pos, Uani):
+        p = cpot.getFromParameters(tem, unit, pos, Uani)
+        return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
-    if sum:
-        return res.sum(axis=0)
-    else:
-        return res
+    g = jax.grad(R, argnums=(0,1))
+    gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
+    print(gr)
 
 
 def calcCBED(V, convergence, crys, numOfCells, ndisk=30, Nx=128, Ny=128, division="Auto", sum=True):

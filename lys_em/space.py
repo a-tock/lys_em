@@ -87,12 +87,6 @@ class FunctionSpace:
         grid = jnp.array(jnp.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
         return grid
 
-    def fft(self, data):
-        return jnp.fft.fft2(data) * self.dV
-
-    def ifft(self, data):
-        return jnp.fft.ifft2(data*self.mask) / self.dV
-
     @property
     def N(self):
         return self._N

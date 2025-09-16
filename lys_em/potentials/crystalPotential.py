@@ -1,14 +1,11 @@
-import numpy as np
-from lys_mat import CrystalStructure
-
-from ..kinematical import structureFactors 
-from ..consts import m
-
-from .interface import PotentialInterface
-
 import jax
 import jax.numpy as jnp
 
+from lys_mat import CrystalStructure
+
+from ..kinematical import structureFactorFunc 
+from ..consts import m
+from .interface import PotentialInterface
 
 
 class CrystalPotential(PotentialInterface):
@@ -21,15 +18,23 @@ class CrystalPotential(PotentialInterface):
     """
 
     def __init__(self, space, crys):
-        self._sp = space
+        super().__init__(space)
         self._crys = crys
+        self._sp = space
 
     def getPhase(self, beam):
+        return self._getPhaseFromParameters(beam, self._crys.unit, self._crys.getAtomicPositions(), [at.Uani for at in self._crys.atoms])
+
+    def getFromParameters(self, beam, unit, position, Uani):
+        phase = self._getPhaseFromParameters(beam, unit, position, Uani)
+        return self.phaseToTrans(phase)
+
+    def _getPhaseFromParameters(self, beam, unit, position, Uani):
         @jax.jit
         def _calcPhase(V_k, mask, kd, n):
             return jnp.fft.ifft2(V_k * jnp.exp(1j*n*kd) * mask)
 
-        V_ks = _Slices(self._crys, self._sp).getPotentialTerms(beam) # (division, Nx, Ny)
+        V_ks = _Slices(self._crys, self._sp).getPotential(beam, unit ,position, Uani) # (division, Nx, Ny)
         n = jnp.arange(round(self._sp.c / self._crys.unit[2][2])) # (ncells)
 
         kd = self._sp.kvec.dot(self._crys.unit[2][0:2]) # (Nx, Ny)
@@ -40,24 +45,19 @@ class CrystalPotential(PotentialInterface):
 class _Slices:
     def __init__(self, crys, sp):
         self._sp = sp
-        self._slices = []
 
         division = round(crys.unit[2][2]/sp.dz)
-        zList = np.arange(division + 1) * crys.unit[2][2] / division
-        positionList = crys.getAtomicPositions()
-        for i in range(len(zList) - 1):
-            atomsList = [at for pos, at in zip(positionList, crys.atoms) if zList[i] <= pos[2] < zList[i + 1]]
-            self._slices.append(CrystalStructure(crys.cell, atomsList))
+        zList = jnp.arange(division + 1) * crys.unit[2][2] / division
+        self._index = [[j for j, pos in enumerate(crys.getAtomicPositions()) if zList[i] <= pos[2] < zList[i + 1]] for i in range(len(zList) - 1)]
+        self._slices = [CrystalStructure(crys.cell, [crys.atoms[i] for i in indices]) for indices in self._index]
 
-    def getPotentialTerms(self, beam):
+    def getPotential(self, beam, unit ,position, Uani):
         sig =beam.wavelength * beam.relativisticMass / m
-        return jnp.array([sig * self._calculatePotential(c) for c in self._slices])
-    
-    def _calculatePotential(self, crys):
-        if len(crys.atoms) == 0:
-            return self._sp.kvec[:,:,0]*0
-        else:
-            k = self._sp.kvec
-            q = np.array([k[:, :, 0], k[:, :, 1], k[:, :, 1]*0]).transpose(1, 2, 0)
-            return structureFactors(crys, q)
+        positions = [jnp.array([position[i] for i in indices]) for indices in self._index]
+        Uanis = [jnp.array([Uani[i] for i in indices]) for indices in self._index]
+        return jnp.array([self._calcFromParameters(c, unit, pos, U) for c, pos, U in zip(self._slices, positions, Uanis)]) * sig
 
+    def _calcFromParameters(self, c, unit ,position, Uani):
+        k = self._sp.kvec
+        q = jnp.array([k[:, :, 0], k[:, :, 1], k[:, :, 1]*0]).transpose(1, 2, 0)
+        return structureFactorFunc(c, q)(unit, position, Uani)
