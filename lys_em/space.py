@@ -8,9 +8,9 @@ class FunctionSpace:
     The length of the rectangular space is defined by a and b. Each cell of the grid function space is (crys.a/Nx crys.b/Ny)
 
     Args:
-        a (float): Length of the unit cell along the a-vector.
-        b (float): Length of the unit cell along the b-vector.
-        c (float): Length of the unit cell along the optical axis direction
+        a (float): Length of the unit cell along the a-vector in angstrome.
+        b (float): Length of the unit cell along the b-vector in angstrome.
+        c (float): Length of the unit cell along the optical axis direction in angstrome.
         gamma (float, optional): Angle between the unit cell vectors in degrees. Default is 90.
         Nx (int, optional): Number of grid points along the a-vector. Default is 128.
         Ny (int, optional): Number of grid points along the b-vector. Default is 128.
@@ -78,13 +78,19 @@ class FunctionSpace:
             grid = self._create_grid()
             self._kvec = jnp.dot(grid, inverse_matrix.T)
         return self._kvec
+    
+    @property
+    def rvec(self):
+        grid = self._create_grid()
+        unit = jnp.array([self._unit[0]/self._N[0], self._unit[1]/self._N[1]])
+        return jnp.dot(grid, unit)
 
     def _create_grid(self):
         x = jnp.arange(-self._N[0] // 2, self._N[0] // 2)
         shift_x = jnp.roll(x, self._N[0] // 2)
         y = jnp.arange(-self._N[1] // 2, self._N[1] // 2)
         shift_y = jnp.roll(y, self._N[1] // 2)
-        grid = jnp.array(jnp.meshgrid(shift_x, shift_y)).transpose(2, 1, 0)
+        grid = jnp.array(jnp.meshgrid(shift_x, shift_y, indexing="ij")).transpose(1, 2, 0)
         return grid
 
     @property

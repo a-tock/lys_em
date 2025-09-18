@@ -1,8 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-from . import TEM, TEMParameter, FunctionSpace
-
+from . import TEMParameter
 
 
 def multislice(sp, pot, tem, params, probe=None):
@@ -12,7 +11,9 @@ def multislice(sp, pot, tem, params, probe=None):
     """
     P_k = getPropagationTerm(sp, tem, params) # shape (len(params), Nx, Ny)
     phi = getWaveFunction(sp, tem, params, probe=probe) # shape (len(params), Nx, Ny)
-    return jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
+    phi = jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
+    H = getAberrationFunction(sp, tem, params) # shape (len(params), Nx, Ny)
+    return jnp.fft.ifft2(jnp.fft.fft2(phi) * H * sp.mask)
 
 
 def getPropagationTerm(sp, tem, params):
@@ -76,6 +77,19 @@ def getWaveFunction(sp, tem, params, probe=None):
     pos = jnp.array([p.position for p in params])
     f = jax.vmap(_shiftProbe, in_axes=[None, 0])
     return f(probe, pos)
+
+
+def getAberrationFunction(sp, tem, params):
+    k = jnp.linalg.norm(sp.kvec, axis=2)
+    l = tem.wavelength
+    Cs = tem.Cs
+
+    @jax.jit
+    def _chi(df):
+        return 2*jnp.pi/l * (Cs*((l*k)**4)/4 - df*((l*k)**2)/2)
+
+    defocus = jnp.array([p.defocus for p in params])
+    return jnp.exp(1j * jax.vmap(_chi)(defocus))
 
 
 @jax.jit

@@ -82,6 +82,10 @@ class TEMParameter:
     @property
     def position(self):
         return np.array(self._position)
+    
+    @property
+    def defocus(self):
+        return self._defocus
 
     def beamTilt(self, type="polar"):
         """
@@ -96,14 +100,4 @@ class TEMParameter:
         elif type == "cartesian":
             x, y, z = self.beamDirection
             return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])
-
-    def chi(self, tem, k):
-        """
-        Return net phase error from spherical aberration and defocus.
-
-        Args:
-            k(sequence of length 2 array): The wavenumber.
-        """
-        alpha = tem.wavelength * k / (2 * np.pi)
-        return 2 * np.pi / tem.wavelength * (0.25 * tem.Cs * alpha**4 - 0.5 * self._defocus * alpha**2)
 

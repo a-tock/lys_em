@@ -1,1 +1,2 @@
 from .crystalPotential import CrystalPotential
+from .magneticPotential import MagneticPotential

@@ -3,11 +3,11 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, fitPrecessionDiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, fitPrecessionDiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import _apply, getPropagationTerm
-from lys_em.potentials.crystalPotential import _Slices
+from lys_em.potentials.crystalPotential import _Slices, CrystalPotential
 
 
 class MultiSlice_test(unittest.TestCase):
@@ -103,7 +103,8 @@ class CrystalPotential_test(unittest.TestCase):
         b = TEM(60e3, 0)
 
         sp = FunctionSpace.fromCrystal(self.Au_single, N, N, 1, division=2)
-        V_k = _Slices(self.Au_single, sp)._calculatePotential(self.Au_single) * b.wavelength * b.relativisticMass / m  # A^2
+        pot = CrystalPotential(sp, self.Au_single)
+        V_k = _Slices(self.Au_single, sp).getPotential(b, self.Au_single.unit, self.Au_single.getAtomicPositions(), [at.Uani for at in self.Au_single.atoms])[0]
         V_r = np.fft.ifft2(V_k * sp.mask) / sp.dV
 
         r = np.linspace(0, self.Au_single.a, N, endpoint=False)
@@ -120,6 +121,6 @@ class CrystalPotential_test(unittest.TestCase):
         # check potential calculation
         sp = FunctionSpace.fromCrystal(self.Au, 10, 10, 1, division=1)
         slices = _Slices(self.Au, sp)
-        pot = slices._calculatePotential(slices._slices[0])
+        pot = slices.getPotential(b, self.Au.unit, self.Au.getAtomicPositions(), [at.Uani for at in self.Au.atoms])[0]
         self.assertTrue(np.abs((pot[0, 0] / pot[0, 2]) - 1.725) < 1e-3)
         self.assertTrue(np.abs(pot[0, 1]) < 1e-5)
