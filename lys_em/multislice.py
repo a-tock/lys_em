@@ -4,20 +4,32 @@ from jax.sharding import PartitionSpec as P, NamedSharding
 
 from . import TEMParameter
 
-jax.config.update('jax_num_cpu_devices', 1)
-
 
 def multislice(sp, pot, tem, params, probe=None):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
+    import time
+    start = time.time()
     mesh = jax.make_mesh((len(jax.devices()),), ('i'))
     s = NamedSharding(mesh, P('i'))
 
-    P_k = getPropagationTerm(sp, tem, params, sharding=s)  # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem, params, probe=probe, sharding=s)  # shape (len(params), Nx, Ny)
-    phi = jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
+    pot = jax.device_put(pot)  # shape (thickness, Nx, Ny)
+
+    P_k = getPropagationTerm(sp, tem, params, sharding=s).block_until_ready()
+    t_mesh = time.time()
+    P_k = getPropagationTerm(sp, tem, params, sharding=s).block_until_ready()  # shape (len(params), Nx, Ny)
+    t_p = time.time()
+    print(f"Time: mesh {t_mesh-start:.2f}, P_k {t_p-t_mesh:.2f}")
+    return P_k
+    phi = getWaveFunction(sp, tem, params, probe=probe, sharding=s).block_until_ready()  # shape (len(params), Nx, Ny)
+    t_phi = time.time()
+    phi = jax.vmap(_apply2, in_axes=[0, None, 0])(phi, pot, P_k).block_until_ready()  # shape (len(params), Nx, Ny)
+#    phi = jax.vmap(_apply2)(phi, pot, P_k).block_until_ready()  # shape (len(params), Nx, Ny)
+    t_apply = time.time()
+    print(f"Time: mesh {t_mesh-start:.2f}, P_k {t_p-t_mesh:.2f}, phi {t_phi-t_p:.2f}, apply {t_apply-t_phi:.2f}, total {t_apply-start:.2f}")
+    return phi
     H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
     return jnp.fft.ifft2(jnp.fft.fft2(phi) * H * sp.mask)
 
@@ -108,3 +120,7 @@ def _apply(phi, pots, P_k):
         return jnp.fft.ifft2(jnp.fft.fft2(phi * V_r) * P_k), None
     phi, _ = jax.lax.scan(body, phi, pots)
     return phi
+
+
+def _apply2(phi, pots, P_k):
+    return pots.sum(axis=0)

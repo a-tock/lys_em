@@ -44,7 +44,7 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_TaTe2_prec(self):
         TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
-        res = fitPrecessionDiffraction(0.75e6, TaTe2, 50, 2, 30, Nx=256, Ny=64, division=1)
+        res = fitPrecessionDiffraction(0.75e6, TaTe2, 50, 2, 1800, Nx=256, Ny=64, division=1)
 
     def test_Propagation(self):
         a = 3
@@ -53,7 +53,7 @@ class MultiSlice_test(unittest.TestCase):
         tem = TEM(60e3)
 
         phi = np.zeros((128, 128), dtype=np.complex64)
-        phi[0,0] = 1
+        phi[0, 0] = 1
         pot = np.ones((10, 128, 128))
         P_k = getPropagationTerm(sp, tem, TEMParameter())
 

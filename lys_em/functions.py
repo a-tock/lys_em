@@ -30,18 +30,21 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
     start = time.time()
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    cpot = CrystalPotential(sp, crys)
+    cpot = CrystalPotential(sp, crys).get(tem)
     params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
+    print("Potential: ", time.time() - start)
 
-    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
-    print(time.time()-start)
+#    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
+    data = diffraction(multislice(sp, cpot, tem, params)).block_until_ready()
+#    data = multislice(sp, cpot, tem, params).block_until_ready()
+    print("Prec total: ", time.time() - start)
     return
 
     def R(unit, pos, Uani):
         p = cpot.getFromParameters(tem, unit, pos, Uani)
         return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
-    g = jax.grad(R, argnums=(0,1))
+    g = jax.grad(R, argnums=(0, 1))
     gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
     print(gr)
 
@@ -70,5 +73,8 @@ def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, divisio
     return res
 
 
+@jax.pmap
 def diffraction(data):
-    return abs(jnp.fft.fft2(data))**2
+    #    return data
+    return jnp.fft.fft2(data)
+    return jnp.abs(jnp.fft.fft2(data))**2
