@@ -1,13 +1,12 @@
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P, NamedSharding
-from jax.experimental.pjit import pjit
+from jax.sharding import PartitionSpec as P
 from jax.experimental.shard_map import shard_map
 
 from . import TEMParameter
 
 
-def multislice(sp, pot, tem, params, probe=None):
+def multislice(sp, pot, tem, params, probe=None, aberration=True):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
@@ -15,20 +14,12 @@ def multislice(sp, pot, tem, params, probe=None):
     if isinstance(params, TEMParameter):
         return multislice(sp, pot, tem, [params], probe=probe)[0]
 
-    import time
-    start = time.time()
     mesh = jax.make_mesh((len(jax.devices()), ), ('i'))
-    t_mesh = time.time()
-
-    P_k = getPropagationTerm(sp, tem, params)  # shape (len(params), Nx, Ny)
-    t_p = time.time()
-
-    phi = getWaveFunction(sp, tem, params, probe=probe)  # shape (len(params), Nx, Ny)
-    t_phi = time.time()
-    print(P_k.sharding, phi.sharding)
-
     fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
     ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
+
+    P_k = getPropagationTerm(sp, tem, params)  # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem, params, probe=probe)  # shape (len(params), Nx, Ny)
 
     @jax.jit
     def _apply(phi, pots, P_k):
@@ -37,13 +28,13 @@ def multislice(sp, pot, tem, params, probe=None):
         phi, _ = jax.lax.scan(body, phi, pots)
         return phi
     
-    phi = _apply(phi, pot, P_k).block_until_ready()
-    t_apply = time.time()
+    phi = _apply(phi, pot, P_k)
 
-    print(f"Time: mesh {t_mesh-start:.2f}, P_k {t_p-t_mesh:.2f}, phi {t_phi-t_p:.2f}, apply {t_apply-t_phi:.2f}, total {t_apply-start:.2f}")
+    if aberration:
+        H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
+        phi = ifft2(fft2(phi) * H * sp.mask)
+
     return phi
-    H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
-    return jnp.fft.ifft2(jnp.fft.fft2(phi) * H * sp.mask)
 
 
 def getPropagationTerm(sp, tem, params):

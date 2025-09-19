@@ -29,13 +29,13 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
     start = time.time()
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    cpot = CrystalPotential(sp, crys).get(tem)
+    cpot = CrystalPotential(sp, crys)
     params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
     print("Potential: ", time.time() - start)
 
-    data = diffraction(multislice(sp, cpot, tem, params))
+    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
     print("Prec total: ", time.time() - start)
-    return
+    #return
 
     def R(unit, pos, Uani):
         p = cpot.getFromParameters(tem, unit, pos, Uani)
@@ -43,6 +43,7 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
 
     g = jax.grad(R, argnums=(0, 1))
     gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
+    print("Grad: ", time.time() - start)
     print(gr)
 
 

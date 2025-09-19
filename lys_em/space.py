@@ -46,26 +46,21 @@ class FunctionSpace:
         """
         Return mask pattern whose diameter is identical with 2/3 of min(kx, ky).
         """
-        if not hasattr(self, "_mask"):
-            k = jnp.sqrt(self.k2)
-            max = jnp.sqrt(self._getMax())
-            self._mask = jnp.where(k > max * 2 / 3, 0, 1)
-        return self._mask
+        k = jnp.sqrt(self.k2)
+        max = jnp.sqrt(self._getMax())
+        return jnp.where(k > max * 2 / 3, 0, 1)
 
     def _getMax(self):
         k2_row0 = self.k2[self._N[0] // 2, :]
         k2_col0 = self.k2[:, self._N[1] // 2]
-        return min(min(k2_row0), min(k2_col0))
+        return jnp.minimum(jnp.min(k2_row0), jnp.min(k2_col0))
 
     @property
     def k2(self):
         """
         Return k^2 for respective grid point in reciprocal space. The unit is rad/A.
         """
-        if not hasattr(self, "_k2"):
-            k = self.kvec
-            self._k2 = k[:, :, 0]**2 + k[:, :, 1]**2
-        return self._k2
+        return jnp.linalg.norm(self.kvec, axis=2)**2
 
     @property
     def kvec(self):
@@ -73,11 +68,9 @@ class FunctionSpace:
         Return 2-dimensional reciprocal space grid. The unit is rad/A.
         Each cell has (2pi/a, 2pi/b) length in reciprocal space.
         """
-        if not hasattr(self, "_kvec"):
-            inverse_matrix = 2 * np.pi * jnp.linalg.inv(self._unit)
-            grid = self._create_grid()
-            self._kvec = jnp.dot(grid, inverse_matrix.T)
-        return self._kvec
+        inverse_matrix = 2 * np.pi * jnp.linalg.inv(self._unit)
+        grid = self._create_grid()
+        return jnp.dot(grid, inverse_matrix.T)
     
     @property
     def rvec(self):
