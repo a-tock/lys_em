@@ -3,7 +3,6 @@ import itertools
 import numpy as np
 import jax
 import jax.numpy as jnp
-
 from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice
 
 
@@ -34,9 +33,7 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
     params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
     print("Potential: ", time.time() - start)
 
-#    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
-    data = diffraction(multislice(sp, cpot, tem, params)).block_until_ready()
-#    data = multislice(sp, cpot, tem, params).block_until_ready()
+    data = diffraction(multislice(sp, cpot, tem, params))
     print("Prec total: ", time.time() - start)
     return
 
@@ -72,9 +69,5 @@ def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, divisio
     res.reshape(scanx, scany, Nx, Ny)
     return res
 
-
-@jax.pmap
 def diffraction(data):
-    #    return data
-    return jnp.fft.fft2(data)
     return jnp.abs(jnp.fft.fft2(data))**2
