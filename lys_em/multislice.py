@@ -1,28 +1,43 @@
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P, NamedSharding
+from jax.sharding import PartitionSpec as P
+from jax.experimental.shard_map import shard_map
 
 from . import TEMParameter
 
-jax.config.update('jax_num_cpu_devices', 1)
 
-
-def multislice(sp, pot, tem, params, probe=None):
+def multislice(sp, pot, tem, params, probe=None, aberration=True):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
     """
-    mesh = jax.make_mesh((len(jax.devices()),), ('i'))
-    s = NamedSharding(mesh, P('i'))
+    if isinstance(params, TEMParameter):
+        return multislice(sp, pot, tem, [params], probe=probe)[0]
 
-    P_k = getPropagationTerm(sp, tem, params, sharding=s)  # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem, params, probe=probe, sharding=s)  # shape (len(params), Nx, Ny)
-    phi = jax.vmap(_apply, in_axes=[0, None, 0])(phi, pot, P_k)
-    H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
-    return jnp.fft.ifft2(jnp.fft.fft2(phi) * H * sp.mask)
+    mesh = jax.make_mesh((len(jax.devices()), ), ('i'))
+    fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
+    ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
+
+    P_k = getPropagationTerm(sp, tem, params)  # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem, params, probe=probe)  # shape (len(params), Nx, Ny)
+
+    @jax.jit
+    def _apply(phi, pots, P_k):
+        def body(phi, V_r):
+            return ifft2(fft2(phi * V_r) * P_k), None
+        phi, _ = jax.lax.scan(body, phi, pots)
+        return phi
+    
+    phi = _apply(phi, pot, P_k)
+
+    if aberration:
+        H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
+        phi = ifft2(fft2(phi) * H * sp.mask)
+
+    return phi
 
 
-def getPropagationTerm(sp, tem, params, sharding=None):
+def getPropagationTerm(sp, tem, params):
     """
     Return the propagation term of the wave transfer function.
 
@@ -47,22 +62,18 @@ def getPropagationTerm(sp, tem, params, sharding=None):
         the propagation term at the respective grid point in reciprocal
         space.
     """
-    @jax.jit
-    def _propagationTerm(k, mask, lamb, theta, dz):
-        tilt = 1j * (k.dot(jnp.tan(theta))) - 1j * lamb * jnp.linalg.norm(k, axis=2)**2 / 4 / jnp.pi
-        return jnp.exp(dz * tilt) * mask
 
-    if isinstance(params, TEMParameter):
-        return getPropagationTerm(sp, tem, [params])[0]
+    @jax.vmap
+    @jax.jit
+    def _propagationTerm(theta):
+        tilt = 1j * (sp.kvec.dot(jnp.tan(theta))) - 1j * tem.wavelength * jnp.linalg.norm(sp.kvec, axis=2)**2 / 4 / jnp.pi
+        return jnp.exp(sp.dz * tilt) * sp.mask
 
     thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in params])
-    if sharding is not None:
-        thetas = jax.device_put(thetas, sharding)
-    f = jax.vmap(_propagationTerm, in_axes=[None, None, None, 0, None])
-    return f(sp.kvec, sp.mask, tem.wavelength, thetas, sp.dz)
+    return _propagationTerm(thetas)
 
 
-def getWaveFunction(sp, tem, params, probe=None, sharding=None):
+def getWaveFunction(sp, tem, params, probe=None):
     """
     Generate a normalized 2D array representing the function space grid.
 
@@ -71,22 +82,17 @@ def getWaveFunction(sp, tem, params, probe=None, sharding=None):
         initialized to the value 1/(Nx*Ny), representing a uniform distribution
         over the function space.
     """
+    @jax.vmap
     @jax.jit
-    def _shiftProbe(probe, pos):
+    def _shiftProbe(pos):
         wave = jnp.fft.ifft2(probe * jnp.exp(1j * sp.kvec.dot(pos)))
         return wave / jnp.sum(jnp.abs(wave)**2)
-
-    if isinstance(params, TEMParameter):
-        return getWaveFunction(sp, tem, [params])[0]
 
     if probe is None:
         probe = jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, 1, 0)
 
     pos = jnp.array([p.position for p in params])
-    if sharding is not None:
-        pos = jax.device_put(pos, sharding)
-    f = jax.vmap(_shiftProbe, in_axes=[None, 0])
-    return f(probe, pos)
+    return _shiftProbe(pos)
 
 
 def getAberrationFunction(sp, tem, params):
@@ -102,9 +108,4 @@ def getAberrationFunction(sp, tem, params):
     return jnp.exp(1j * jax.vmap(_chi)(defocus))
 
 
-@jax.jit
-def _apply(phi, pots, P_k):
-    def body(phi, V_r):
-        return jnp.fft.ifft2(jnp.fft.fft2(phi * V_r) * P_k), None
-    phi, _ = jax.lax.scan(body, phi, pots)
-    return phi
+

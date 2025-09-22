@@ -6,7 +6,7 @@ from lys_mat import CrystalStructure, Atom
 from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, fitPrecessionDiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
-from lys_em.multislice import _apply, getPropagationTerm
+from lys_em.multislice import getPropagationTerm
 from lys_em.potentials.crystalPotential import _Slices, CrystalPotential
 
 
@@ -44,7 +44,7 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_TaTe2_prec(self):
         TaTe2 = CrystalStructure.loadFrom(self.path + "/TaTe2.cif")
-        res = fitPrecessionDiffraction(0.75e6, TaTe2, 50, 2, 30, Nx=256, Ny=64, division=1)
+        res = fitPrecessionDiffraction(0.75e6, TaTe2, 50, 2, 180, Nx=256, Ny=64, division=1)
 
     def test_Propagation(self):
         a = 3
@@ -53,13 +53,13 @@ class MultiSlice_test(unittest.TestCase):
         tem = TEM(60e3)
 
         phi = np.zeros((128, 128), dtype=np.complex64)
-        phi[0,0] = 1
-        pot = np.ones((10, 128, 128))
-        P_k = getPropagationTerm(sp, tem, TEMParameter())
+        phi[0, 0] = 1
+        P_k = np.array(getPropagationTerm(sp, tem, [TEMParameter()])[0])
 
         # compared with theoretical solution (propagation after a in free space)
-        phi = _apply(phi, pot, P_k)
-        calcphi = np.fft.ifft2(sp._mask * np.exp(-1j * tem.wavelength * a * sp.k2 / 4 / np.pi))
+        for i in range(10):
+            phi = np.fft.ifft2(np.fft.fft2(phi) * P_k)
+        calcphi = np.fft.ifft2(sp.mask * np.exp(-1j * tem.wavelength * a * sp.k2 / 4 / np.pi))
 
         assert_array_almost_equal(phi, calcphi)
 
