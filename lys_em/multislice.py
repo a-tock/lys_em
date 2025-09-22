@@ -6,7 +6,7 @@ from jax.experimental.shard_map import shard_map
 from . import TEMParameter
 
 
-def multislice(sp, pot, tem, params, probe=None, aberration=True):
+def multislice(sp, pot, tem, params, probe="TEM"):
     """
     Caluclate multislice simulations for list of thetas.
     The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
@@ -30,7 +30,7 @@ def multislice(sp, pot, tem, params, probe=None, aberration=True):
     
     phi = _apply(phi, pot, P_k)
 
-    if aberration:
+    if probe=="TEM":
         H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
         phi = ifft2(fft2(phi) * H * sp.mask)
 
@@ -73,7 +73,7 @@ def getPropagationTerm(sp, tem, params):
     return _propagationTerm(thetas)
 
 
-def getWaveFunction(sp, tem, params, probe=None):
+def getWaveFunction(sp, tem, params, probe="TEM"):
     """
     Generate a normalized 2D array representing the function space grid.
 
@@ -82,30 +82,43 @@ def getWaveFunction(sp, tem, params, probe=None):
         initialized to the value 1/(Nx*Ny), representing a uniform distribution
         over the function space.
     """
+
     @jax.vmap
     @jax.jit
-    def _shiftProbe(pos):
-        wave = jnp.fft.ifft2(probe * jnp.exp(1j * sp.kvec.dot(pos)))
+    def _shiftProbe(probe_func, pos):
+        wave = jnp.fft.ifft2(probe_func * jnp.exp(1j * sp.kvec.dot(pos)))
         return wave / jnp.sum(jnp.abs(wave)**2)
 
-    if probe is None:
-        probe = jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, 1, 0)
+    @jax.vmap
+    @jax.jit
+    def _probe(chi_n):
+        return jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, jnp.exp(-1j*chi_n), 0) # Nx, Ny
+
+    defocus = jnp.array([p.defocus for p in params])
+    chi = getChi(sp, tem)
+    if probe in ["TEM","STEM"]:
+        probe = _probe(chi(defocus)) # len(params), Nx, Ny
+    else:
+        probe = jax.vmap(lambda df: probe)(defocus)
 
     pos = jnp.array([p.position for p in params])
-    return _shiftProbe(pos)
+    return _shiftProbe(probe, pos)
 
 
 def getAberrationFunction(sp, tem, params):
+    chi = getChi(sp, tem)
+    defocus = jnp.array([p.defocus for p in params])
+    return jnp.exp(1j * chi(defocus))
+
+
+def getChi(sp, tem):
     k = jnp.linalg.norm(sp.kvec, axis=2)
     l = tem.wavelength
     Cs = tem.Cs
 
+    @jax.vmap
     @jax.jit
     def _chi(df):
         return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - df * ((l * k)**2) / 2)
 
-    defocus = jnp.array([p.defocus for p in params])
-    return jnp.exp(1j * jax.vmap(_chi)(defocus))
-
-
-
+    return _chi
