@@ -56,11 +56,6 @@ def structureFactors(c, k):
     Returns:
         array_like: The structure factors for the given crystal structure and k vectors.
     """
-    f = structureFactorFunc(c, k)
-    return f(c.unit, c.getAtomicPositions(), np.array([at.Uani for at in c.atoms]))
-
-
-def structureFactorFunc(c, k):
     if len(c.atoms) == 0:
         return jax.jit(lambda unit, position, Uani: k[...,0]*0)
     f_i = jnp.array(_scatteringFactors(c, k))
@@ -70,7 +65,10 @@ def structureFactorFunc(c, k):
         kr_i = jnp.tensordot(k, position, (-1, -1))
         st = f_i * T_i * jnp.exp(1j * kr_i)
         return st.sum(axis=-1)
-    return _func
+
+    u = jnp.array(c.unit.T)
+    position = jnp.array([u.dot(at.position) for at in c.atoms])
+    return _func(c.unit, position, np.array([at.Uani for at in c.atoms]))
 
 
 def formFactors(c, N, K):

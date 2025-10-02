@@ -27,6 +27,7 @@ def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, 
 def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto"):
     import time
     start = time.time()
+
     tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     cpot = CrystalPotential(sp, crys)
@@ -35,6 +36,7 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
 
     data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
     print("Prec total: ", time.time() - start)
+    #return
 
     def R(unit, pos, Uani):
         c = crys.duplicate()
@@ -42,7 +44,7 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
         for at, p, u in zip(c.atoms, pos, Uani):
             at.position = p
         sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
-        p = CrystalPotential(sp, c).get(tem)
+        p = cpot.replace(sp,c).get(tem)
         return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
     g = jax.grad(R, argnums=(0, 1))
