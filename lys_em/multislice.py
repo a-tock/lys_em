@@ -66,7 +66,7 @@ def getPropagationTerm(sp, tem, params):
     @jax.vmap
     @jax.jit
     def _propagationTerm(theta):
-        tilt = 1j * (sp.kvec.dot(jnp.tan(theta))) - 1j * tem.wavelength * jnp.linalg.norm(sp.kvec, axis=2)**2 / 4 / jnp.pi
+        tilt = 1j * (sp.kvec.dot(jnp.tan(theta))) - 1j * tem.wavelength * sp.k**2 / 4 / jnp.pi
         return jnp.exp(sp.dz * tilt) * sp.mask
 
     thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in params])
@@ -112,7 +112,7 @@ def getAberrationFunction(sp, tem, params):
 
 
 def getChi(sp, tem):
-    k = jnp.linalg.norm(sp.kvec, axis=2)
+    k = sp.k
     l = tem.wavelength
     Cs = tem.Cs
 

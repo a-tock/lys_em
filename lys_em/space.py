@@ -46,21 +46,24 @@ class FunctionSpace:
         """
         Return mask pattern whose diameter is identical with 2/3 of min(kx, ky).
         """
-        k = jnp.sqrt(self.k2)
         max = jnp.sqrt(self._getMax())
-        return jnp.where(k > max * 2 / 3, 0, 1)
+        return jnp.where(self.k > max * 2 / 3, 0, 1)
 
     def _getMax(self):
-        k2_row0 = self.k2[self._N[0] // 2, :]
-        k2_col0 = self.k2[:, self._N[1] // 2]
+        k2 = self.k**2
+        k2_row0 = k2[self._N[0] // 2, :]
+        k2_col0 = k2[:, self._N[1] // 2]
         return jnp.minimum(jnp.min(k2_row0), jnp.min(k2_col0))
 
     @property
-    def k2(self):
+    def k(self):
         """
-        Return k^2 for respective grid point in reciprocal space. The unit is rad/A.
+        Return k for respective grid point in reciprocal space. The unit is rad/A.
         """
-        return jnp.linalg.norm(self.kvec, axis=2)**2
+        def safe_norm(x, axis=-1, eps=1e-12):
+            return jnp.sqrt(jnp.sum(x * x, axis=axis) + eps)
+
+        return safe_norm(self.kvec, axis=2)
 
     @property
     def kvec(self):

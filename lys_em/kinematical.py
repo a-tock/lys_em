@@ -5,8 +5,13 @@ from .space import FunctionSpace
 import jax
 import jax.numpy as jnp
 
+
+def safe_norm(x, axis=-1, eps=1e-12):
+    return jnp.sqrt(jnp.sum(x * x, axis=axis) + eps)
+
+
 def _scatteringFactors(c, k):
-    k4p = jnp.linalg.norm(k, axis=-1) / (4 * np.pi)
+    k4p = safe_norm(k, axis=-1) / (4 * np.pi)
     Z = [at.Z for at in c.atoms]
     N = [at.Occupancy for at in c.atoms]
     F = {z: scatteringFactor(z, k4p) for z in np.unique(Z)}

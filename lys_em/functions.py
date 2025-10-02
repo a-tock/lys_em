@@ -43,7 +43,8 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
         return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
     g = jax.grad(R, argnums=(0, 1))
-    gr = g(crys.unit*0.999, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
+    crys.unit = crys.unit*0.999
+    gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
     print("Grad: ", time.time() - start)
     print(gr)
 
