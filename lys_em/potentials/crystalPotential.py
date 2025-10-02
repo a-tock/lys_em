@@ -23,7 +23,9 @@ class CrystalPotential(PotentialInterface):
         self._sp = space
 
     def getPhase(self, beam):
-        return self._getPhaseFromParameters(beam, self._crys.unit, self._crys.getAtomicPositions(), [at.Uani for at in self._crys.atoms])
+        u = jnp.array(self._crys.unit.T)
+        pos = jnp.array([u.dot(at.position) for at in self._crys.atoms])
+        return self._getPhaseFromParameters(beam, self._crys.unit, pos, [at.Uani for at in self._crys.atoms])
 
     def getFromParameters(self, beam, unit, position, Uani):
         phase = self._getPhaseFromParameters(beam, unit, position, Uani)
@@ -48,7 +50,9 @@ class _Slices:
 
         division = round(crys.unit[2][2]/sp.dz)
         zList = jnp.arange(division + 1) * crys.unit[2][2] / division
-        self._index = [[j for j, pos in enumerate(crys.getAtomicPositions()) if zList[i] <= pos[2] < zList[i + 1]] for i in range(len(zList) - 1)]
+        u = jnp.array(crys.unit.T)
+        pos = jnp.array([u.dot(at.position) for at in crys.atoms])
+        self._index = [[j for j, pos in enumerate(pos) if zList[i] <= pos[2] < zList[i + 1]] for i in range(len(zList) - 1)]
         self._slices = [CrystalStructure(crys.cell, [crys.atoms[i] for i in indices]) for indices in self._index]
 
     def getPotential(self, beam, unit ,position, Uani):

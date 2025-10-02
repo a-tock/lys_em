@@ -18,7 +18,7 @@ class FunctionSpace:
     """
 
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
-        self._unit = jnp.array([[a, 0], [b * np.cos(gamma * np.pi / 180), b * np.sin(gamma * np.pi / 180)]])
+        self._unit = jnp.array([[a, 0], [b * jnp.cos(gamma * jnp.pi / 180), b * jnp.sin(gamma * jnp.pi / 180)]])
         self._c = c
         self._N = np.array([Nx, Ny, Nz])
 
@@ -39,7 +39,9 @@ class FunctionSpace:
         """
         if division == "Auto":
             division = int(crys.unit[2][2] / 2)
-        return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division * ncells)
+        def angle(v1, v2): return jnp.rad2deg(jnp.arccos(jnp.clip(jnp.dot(v1, v2) / (jnp.linalg.norm(v1) * jnp.linalg.norm(v2)), -1.0, 1.0)))
+        a,b = jnp.linalg.norm(crys.unit[0]), jnp.linalg.norm(crys.unit[1])
+        return FunctionSpace(a, b, crys.unit[2][2] * ncells, angle(crys.unit[0], crys.unit[1]), Nx, Ny, division * ncells)
 
     @property
     def mask(self):

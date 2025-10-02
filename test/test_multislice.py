@@ -59,7 +59,7 @@ class MultiSlice_test(unittest.TestCase):
         # compared with theoretical solution (propagation after a in free space)
         for i in range(10):
             phi = np.fft.ifft2(np.fft.fft2(phi) * P_k)
-        calcphi = np.fft.ifft2(sp.mask * np.exp(-1j * tem.wavelength * a * sp.k2 / 4 / np.pi))
+        calcphi = np.fft.ifft2(sp.mask * np.exp(-1j * tem.wavelength * a * sp.k**2 / 4 / np.pi))
 
         assert_array_almost_equal(phi, calcphi)
 

@@ -35,18 +35,22 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
 
     data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
     print("Prec total: ", time.time() - start)
-    #return
 
     def R(unit, pos, Uani):
-        sp = FunctionSpace(jnp.linalg.norm(unit[0]), jnp.linalg.norm(unit[1]), jnp.linalg.norm(unit[2])*numOfCells, Nx=Nx, Ny=Ny, Nz=numOfCells)
-        p = CrystalPotential(sp, crys).getFromParameters(tem, unit, pos, Uani)
+        c = crys.duplicate()
+        c.unit = unit
+        for at, p, u in zip(c.atoms, pos, Uani):
+            at.position = p
+        sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
+        p = CrystalPotential(sp, c).get(tem)
         return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
     g = jax.grad(R, argnums=(0, 1))
-    crys.unit = crys.unit*0.999
-    gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
-    print("Grad: ", time.time() - start)
+    gr = g(crys.unit, [at.position for at in crys.atoms] , [at.Uani for at in crys.atoms])
     print(gr)
+    gr = g(crys.unit*0.999, [at.position for at in crys.atoms] , [at.Uani for at in crys.atoms])
+    print(gr)
+    print("Grad: ", time.time() - start)
 
 
 def calcCBED(V, convergence, crys, numOfCells, ndisk=30, Nx=128, Ny=128, division="Auto", sum=True):
