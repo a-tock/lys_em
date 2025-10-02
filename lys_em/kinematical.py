@@ -6,11 +6,11 @@ import jax
 import jax.numpy as jnp
 
 def _scatteringFactors(c, k):
-    k4p = np.linalg.norm(k, axis=-1) / (4 * np.pi)
+    k4p = jnp.linalg.norm(k, axis=-1) / (4 * np.pi)
     Z = [at.Z for at in c.atoms]
     N = [at.Occupancy for at in c.atoms]
     F = {z: scatteringFactor(z, k4p) for z in np.unique(Z)}
-    return np.array([F[z] * n for z, n in zip(Z, N)]).transpose(*(np.array(range(k4p.ndim)) + 1), 0)
+    return jnp.array([F[z] * n for z, n in zip(Z, N)]).transpose(*(jnp.array(range(k4p.ndim)) + 1), 0)
 
 
 def debyeWallerFactors(c, k):

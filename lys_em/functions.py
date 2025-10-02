@@ -38,11 +38,12 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
     #return
 
     def R(unit, pos, Uani):
-        p = cpot.getFromParameters(tem, unit, pos, Uani)
+        sp = FunctionSpace(jnp.linalg.norm(unit[0]), jnp.linalg.norm(unit[1]), jnp.linalg.norm(unit[2])*numOfCells, Nx=Nx, Ny=Ny, Nz=numOfCells)
+        p = CrystalPotential(sp, crys).getFromParameters(tem, unit, pos, Uani)
         return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
 
     g = jax.grad(R, argnums=(0, 1))
-    gr = g(crys.unit, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
+    gr = g(crys.unit*0.999, crys.getAtomicPositions(), np.array([at.Uani for at in crys.atoms]))
     print("Grad: ", time.time() - start)
     print(gr)
 

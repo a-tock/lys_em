@@ -18,7 +18,7 @@ class FunctionSpace:
     """
 
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
-        self._unit = np.array([[a, 0], [b * np.cos(gamma * np.pi / 180), b * np.sin(gamma * np.pi / 180)]])
+        self._unit = jnp.array([[a, 0], [b * np.cos(gamma * np.pi / 180), b * np.sin(gamma * np.pi / 180)]])
         self._c = c
         self._N = np.array([Nx, Ny, Nz])
 
@@ -105,5 +105,5 @@ class FunctionSpace:
 
         The unit of dV is A^2.
         """
-        return np.sqrt(np.linalg.norm(self._unit[0])**2 * np.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
+        return jnp.sqrt(jnp.linalg.norm(self._unit[0])**2 * jnp.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
 
