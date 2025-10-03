@@ -20,7 +20,7 @@ class FunctionSpace:
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
         self._unit = jnp.array([[a, 0], [b * jnp.cos(gamma * jnp.pi / 180), b * jnp.sin(gamma * jnp.pi / 180)]])
         self._c = c
-        self._N = np.array([Nx, Ny, Nz])
+        self._N = np.array([Nx, Ny, Nz], dtype=int)
 
     @staticmethod
     def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):

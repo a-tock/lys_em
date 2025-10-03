@@ -7,45 +7,35 @@ from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice
 
 
 def calcSADiffraction(V, crys, numOfCells, Nx=128, Ny=128, division="Auto", tilt=[0, 0]):
-    tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys).get(tem)
-    params = [TEMParameter(tilt=tilt)]
+    pot = CrystalPotential(sp, crys)
 
-    return diffraction(multislice(sp, pot, tem, params))[0]
+    tem = TEM(V, params=TEMParameter(tilt=tilt))
+    return diffraction(multislice(pot, tem))
 
 
-def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto", sum=True):
-    tem = TEM(V)
+def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto"):
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
-    pot = CrystalPotential(sp, crys).get(tem)
-    params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
+    pot = CrystalPotential(sp, crys)
+    tem = TEM(V, params=[TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)])
 
-    return diffraction(multislice(sp, pot, tem, params)).sum(axis=0)
+    return diffraction(multislice(pot, tem)).sum(axis=0)
 
 
 def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto"):
     import time
     start = time.time()
 
-    tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     cpot = CrystalPotential(sp, crys)
-    params = [TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)]
-    print("Potential: ", time.time() - start)
+    tem = TEM(V, params=[TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)])
 
-    data = diffraction(multislice(sp, cpot.get(tem), tem, params)).sum(axis=0).block_until_ready()
+    data = diffraction(multislice(cpot, tem)).sum(axis=0).block_until_ready()
     print("Prec total: ", time.time() - start)
-    #return
 
     def R(unit, pos, Uani):
-        c = crys.duplicate()
-        c.unit = unit
-        for at, p, u in zip(c.atoms, pos, Uani):
-            at.position = p
-        sp = FunctionSpace.fromCrystal(c, Nx, Ny, numOfCells, division=division)
-        p = cpot.replace(sp,c).get(tem)
-        return jnp.sum((data - diffraction(multislice(sp, p, tem, params)).sum(axis=0))**2)
+        pot = cpot.replace(unit=unit, pos=pos, Uani=Uani)
+        return jnp.sum((data - diffraction(multislice(pot, tem)).sum(axis=0))**2)
 
     g = jax.grad(R, argnums=(0, 1))
     gr = g(crys.unit, [at.position for at in crys.atoms] , [at.Uani for at in crys.atoms])
@@ -57,24 +47,25 @@ def fitPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, d
 
 def calcCBED(V, convergence, crys, numOfCells, ndisk=30, Nx=128, Ny=128, division="Auto", sum=True):
     # convergence is in radians
-    tem = TEM(V)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     pot = CrystalPotential(sp, crys)
+
     c = np.arange(-convergence, convergence, 2 * convergence / ndisk)
-    params = [TEMParameter(tilt=[tx, ty]) for tx, ty in itertools.product(c, c)]
-    res = abs(np.fft.fft2(multislice(sp, pot, tem, params), axes=(1, 2)))**2
+    tem = TEM(V, params=[TEMParameter(tilt=[tx, ty]) for tx, ty in itertools.product(c, c)])
+
+    res = abs(np.fft.fft2(multislice(pot, tem), axes=(1, 2)))**2
     res.reshape(ndisk, ndisk, Nx, Ny)
     return res
 
 
 def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, division="Auto", scanx=16, scany=16):
-    tem = TEM(V, convergence=convergence)
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     pot = CrystalPotential(sp, crys)
-    c = np.arange(0, crys.a, crys.a / scanx)
-    r = np.arange(0, crys.b, crys.b / scany)
-    params = [TEMParameter(beamPosition=[x, y]) for x, y in itertools.product(c, r)]
-    res = abs(np.fft.fft2(multislice(sp, pot, tem, params), axes=(1, 2)))**2
+
+    c, r = np.arange(0, crys.a, crys.a / scanx), np.arange(0, crys.b, crys.b / scany)
+    tem = TEM(V, convergence=convergence, params=[TEMParameter(beamPosition=[x, y]) for x, y in itertools.product(c, r)])
+
+    res = abs(np.fft.fft2(multislice(pot, tem), axes=(1, 2)))**2
     res.reshape(scanx, scany, Nx, Ny)
     return res
 
