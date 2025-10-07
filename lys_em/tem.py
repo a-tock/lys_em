@@ -15,11 +15,16 @@ class TEM(object):
         direction (list or array-like, optional): The direction vector of the electron beam. Default is [0, 0, -1].
     """
 
-    def __init__(self, acc, convergence=0, divergence=np.inf, Cs=0):
+    def __init__(self, acc, convergence=0, divergence=np.inf, Cs=0, params=None):
         self.__acc = acc
         self._convergence = convergence
         self._divergence = divergence
         self._Cs = Cs
+        if params is None:
+            params = TEMParameter()
+        if isinstance(params, TEMParameter):
+            params = [params]
+        self._parameters = params
 
     @property
     def wavelength(self):
@@ -61,6 +66,10 @@ class TEM(object):
             float:Relativistic mass
         '''
         return m + e * self.__acc / c**2
+    
+    @property
+    def params(self):
+        return self._parameters
 
 
 class TEMParameter:

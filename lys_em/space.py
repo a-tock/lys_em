@@ -18,9 +18,9 @@ class FunctionSpace:
     """
 
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
-        self._unit = np.array([[a, 0], [b * np.cos(gamma * np.pi / 180), b * np.sin(gamma * np.pi / 180)]])
+        self._unit = jnp.array([[a, 0], [b * jnp.cos(gamma * jnp.pi / 180), b * jnp.sin(gamma * jnp.pi / 180)]])
         self._c = c
-        self._N = np.array([Nx, Ny, Nz])
+        self._N = np.array([Nx, Ny, Nz], dtype=int)
 
     @staticmethod
     def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):
@@ -39,28 +39,33 @@ class FunctionSpace:
         """
         if division == "Auto":
             division = int(crys.unit[2][2] / 2)
-        return FunctionSpace(crys.a, crys.b, crys.unit[2][2] * ncells, crys.gamma, Nx, Ny, division * ncells)
+        def angle(v1, v2): return jnp.rad2deg(jnp.arccos(jnp.clip(jnp.dot(v1, v2) / (jnp.linalg.norm(v1) * jnp.linalg.norm(v2)), -1.0, 1.0)))
+        a,b = jnp.linalg.norm(crys.unit[0]), jnp.linalg.norm(crys.unit[1])
+        return FunctionSpace(a, b, crys.unit[2][2] * ncells, angle(crys.unit[0], crys.unit[1]), Nx, Ny, division * ncells)
 
     @property
     def mask(self):
         """
         Return mask pattern whose diameter is identical with 2/3 of min(kx, ky).
         """
-        k = jnp.sqrt(self.k2)
         max = jnp.sqrt(self._getMax())
-        return jnp.where(k > max * 2 / 3, 0, 1)
+        return jnp.where(self.k > max * 2 / 3, 0, 1)
 
     def _getMax(self):
-        k2_row0 = self.k2[self._N[0] // 2, :]
-        k2_col0 = self.k2[:, self._N[1] // 2]
+        k2 = self.k**2
+        k2_row0 = k2[self._N[0] // 2, :]
+        k2_col0 = k2[:, self._N[1] // 2]
         return jnp.minimum(jnp.min(k2_row0), jnp.min(k2_col0))
 
     @property
-    def k2(self):
+    def k(self):
         """
-        Return k^2 for respective grid point in reciprocal space. The unit is rad/A.
+        Return k for respective grid point in reciprocal space. The unit is rad/A.
         """
-        return jnp.linalg.norm(self.kvec, axis=2)**2
+        def safe_norm(x, axis=-1, eps=1e-12):
+            return jnp.sqrt(jnp.sum(x * x, axis=axis) + eps)
+
+        return safe_norm(self.kvec, axis=2)
 
     @property
     def kvec(self):
@@ -105,5 +110,5 @@ class FunctionSpace:
 
         The unit of dV is A^2.
         """
-        return np.sqrt(np.linalg.norm(self._unit[0])**2 * np.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
+        return jnp.sqrt(jnp.linalg.norm(self._unit[0])**2 * jnp.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
 

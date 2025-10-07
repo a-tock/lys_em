@@ -5,12 +5,17 @@ from .space import FunctionSpace
 import jax
 import jax.numpy as jnp
 
+
+def safe_norm(x, axis=-1, eps=1e-12):
+    return jnp.sqrt(jnp.sum(x * x, axis=axis) + eps)
+
+
 def _scatteringFactors(c, k):
-    k4p = np.linalg.norm(k, axis=-1) / (4 * np.pi)
+    k4p = safe_norm(k, axis=-1) / (4 * np.pi)
     Z = [at.Z for at in c.atoms]
     N = [at.Occupancy for at in c.atoms]
     F = {z: scatteringFactor(z, k4p) for z in np.unique(Z)}
-    return np.array([F[z] * n for z, n in zip(Z, N)]).transpose(*(np.array(range(k4p.ndim)) + 1), 0)
+    return jnp.array([F[z] * n for z, n in zip(Z, N)]).transpose(*(jnp.array(range(k4p.ndim)) + 1), 0)
 
 
 def debyeWallerFactors(c, k):
@@ -51,11 +56,6 @@ def structureFactors(c, k):
     Returns:
         array_like: The structure factors for the given crystal structure and k vectors.
     """
-    f = structureFactorFunc(c, k)
-    return f(c.unit, c.getAtomicPositions(), np.array([at.Uani for at in c.atoms]))
-
-
-def structureFactorFunc(c, k):
     if len(c.atoms) == 0:
         return jax.jit(lambda unit, position, Uani: k[...,0]*0)
     f_i = jnp.array(_scatteringFactors(c, k))
@@ -65,7 +65,10 @@ def structureFactorFunc(c, k):
         kr_i = jnp.tensordot(k, position, (-1, -1))
         st = f_i * T_i * jnp.exp(1j * kr_i)
         return st.sum(axis=-1)
-    return _func
+
+    u = jnp.array(c.unit.T)
+    position = jnp.array([u.dot(at.position) for at in c.atoms])
+    return _func(c.unit, position, np.array([at.Uani for at in c.atoms]))
 
 
 def formFactors(c, N, K):
