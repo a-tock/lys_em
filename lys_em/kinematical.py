@@ -57,8 +57,9 @@ def structureFactors(c, k):
         array_like: The structure factors for the given crystal structure and k vectors.
     """
     if len(c.atoms) == 0:
-        return jax.jit(lambda unit, position, Uani: k[...,0]*0)
+        return jnp.zeros(k.shape[:-1], dtype=complex)
     f_i = jnp.array(_scatteringFactors(c, k))
+
     @jax.jit
     def _func(unit, position, Uani):
         T_i = _debyeWallerFactor_impl(unit, Uani, k)
