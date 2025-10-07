@@ -11,6 +11,9 @@ class MagneticPotential(PotentialInterface):
         self._sp = space
         self._M = jnp.array(M) # in A/m
 
+    def replace(self, M):
+        return MagneticPotential(self._sp, M)
+
     def getPhase(self, beam):
         mx, my = jnp.fft.fft2(self._M[:,:,:,0]) * self._sp.dV, jnp.fft.fft2(self._M[:,:,:,1]) * self._sp.dV
         k = self._sp.kvec

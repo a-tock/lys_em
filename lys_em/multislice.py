@@ -3,23 +3,21 @@ import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 from jax.experimental.shard_map import shard_map
 
-from . import TEMParameter
 
-
-def multislice(sp, pot, tem, params, probe="TEM"):
+def multislice(pot, tem, probe="TEM"):
     """
     Caluclate multislice simulations for list of thetas.
-    The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)
+    The shape of returned array will be (Thetas, Nx, Ny).
     """
-    if isinstance(params, TEMParameter):
-        return multislice(sp, pot, tem, [params], probe=probe)[0]
 
     mesh = jax.make_mesh((len(jax.devices()), ), ('i'))
     fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
     ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
 
-    P_k = getPropagationTerm(sp, tem, params)  # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem, params, probe=probe)  # shape (len(params), Nx, Ny)
+    sp = pot.space
+    t_r = pot.getTransmissionFunction(tem)
+    P_k = getPropagationTerm(sp, tem)  # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem, probe=probe)  # shape (len(params), Nx, Ny)
 
     @jax.jit
     def _apply(phi, pots, P_k):
@@ -28,16 +26,16 @@ def multislice(sp, pot, tem, params, probe="TEM"):
         phi, _ = jax.lax.scan(body, phi, pots)
         return phi
     
-    phi = _apply(phi, pot, P_k)
+    phi = _apply(phi, t_r, P_k)
 
     if probe=="TEM":
-        H = getAberrationFunction(sp, tem, params)  # shape (len(params), Nx, Ny)
+        H = getAberrationFunction(sp, tem)  # shape (len(params), Nx, Ny)
         phi = ifft2(fft2(phi) * H * sp.mask)
 
-    return phi
+    return jnp.squeeze(phi)
 
 
-def getPropagationTerm(sp, tem, params):
+def getPropagationTerm(sp, tem):
     """
     Return the propagation term of the wave transfer function.
 
@@ -66,14 +64,14 @@ def getPropagationTerm(sp, tem, params):
     @jax.vmap
     @jax.jit
     def _propagationTerm(theta):
-        tilt = 1j * (sp.kvec.dot(jnp.tan(theta))) - 1j * tem.wavelength * jnp.linalg.norm(sp.kvec, axis=2)**2 / 4 / jnp.pi
+        tilt = 1j * (sp.kvec.dot(jnp.tan(theta))) - 1j * tem.wavelength * sp.k**2 / 4 / jnp.pi
         return jnp.exp(sp.dz * tilt) * sp.mask
 
-    thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in params])
+    thetas = jnp.array([jnp.radians(p.beamTilt(type="cartesian")) for p in tem.params])
     return _propagationTerm(thetas)
 
 
-def getWaveFunction(sp, tem, params, probe="TEM"):
+def getWaveFunction(sp, tem, probe="TEM"):
     """
     Generate a normalized 2D array representing the function space grid.
 
@@ -94,25 +92,25 @@ def getWaveFunction(sp, tem, params, probe="TEM"):
     def _probe(chi_n):
         return jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, jnp.exp(-1j*chi_n), 0) # Nx, Ny
 
-    defocus = jnp.array([p.defocus for p in params])
+    defocus = jnp.array([p.defocus for p in tem.params])
     chi = getChi(sp, tem)
     if probe in ["TEM","STEM"]:
         probe = _probe(chi(defocus)) # len(params), Nx, Ny
     else:
         probe = jax.vmap(lambda df: probe)(defocus)
 
-    pos = jnp.array([p.position for p in params])
+    pos = jnp.array([p.position for p in tem.params])
     return _shiftProbe(probe, pos)
 
 
-def getAberrationFunction(sp, tem, params):
+def getAberrationFunction(sp, tem):
     chi = getChi(sp, tem)
-    defocus = jnp.array([p.defocus for p in params])
+    defocus = jnp.array([p.defocus for p in tem.params])
     return jnp.exp(1j * chi(defocus))
 
 
 def getChi(sp, tem):
-    k = jnp.linalg.norm(sp.kvec, axis=2)
+    k = sp.k
     l = tem.wavelength
     Cs = tem.Cs
 

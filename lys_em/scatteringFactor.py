@@ -1,5 +1,5 @@
 import numpy as np
-
+import jax.numpy as jnp
 
 def scatteringFactor(Z, q, type='electron', occupancy=1):
     """
@@ -24,7 +24,7 @@ def scatteringFactor(Z, q, type='electron', occupancy=1):
         sf = sf_electron[Z - 1]
     res = 0
     for i in range(4):
-        res += sf[i] * np.exp(-sf[4 + i] * q * q)
+        res += sf[i] * jnp.exp(-sf[4 + i] * q * q)
     return res * occupancy
 
 
