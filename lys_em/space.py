@@ -2,6 +2,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+
 class FunctionSpace:
     """
     FunctionSpace represents a 2-dimensional parallelogram grid function space.
@@ -20,7 +21,7 @@ class FunctionSpace:
     def __init__(self, a, b, c, gamma=90, Nx=128, Ny=128, Nz=10):
         self._unit = jnp.array([[a, 0], [b * jnp.cos(gamma * jnp.pi / 180), b * jnp.sin(gamma * jnp.pi / 180)]])
         self._c = c
-        self._N = np.array([Nx, Ny, Nz], dtype=int)
+        self._N = (int(Nx), int(Ny), int(Nz))
 
     @staticmethod
     def fromCrystal(crys, Nx, Ny, ncells, division="Auto"):
@@ -39,8 +40,9 @@ class FunctionSpace:
         """
         if division == "Auto":
             division = int(crys.unit[2][2] / 2)
+
         def angle(v1, v2): return jnp.rad2deg(jnp.arccos(jnp.clip(jnp.dot(v1, v2) / (jnp.linalg.norm(v1) * jnp.linalg.norm(v2)), -1.0, 1.0)))
-        a,b = jnp.linalg.norm(crys.unit[0]), jnp.linalg.norm(crys.unit[1])
+        a, b = jnp.linalg.norm(crys.unit[0]), jnp.linalg.norm(crys.unit[1])
         return FunctionSpace(a, b, crys.unit[2][2] * ncells, angle(crys.unit[0], crys.unit[1]), Nx, Ny, division * ncells)
 
     @property
@@ -73,14 +75,14 @@ class FunctionSpace:
         Return 2-dimensional reciprocal space grid. The unit is rad/A.
         Each cell has (2pi/a, 2pi/b) length in reciprocal space.
         """
-        inverse_matrix = 2 * np.pi * jnp.linalg.inv(self._unit)
+        inverse_matrix = 2 * jnp.pi * jnp.linalg.inv(self._unit)
         grid = self._create_grid()
         return jnp.dot(grid, inverse_matrix.T)
-    
+
     @property
     def rvec(self):
         grid = self._create_grid()
-        unit = jnp.array([self._unit[0]/self._N[0], self._unit[1]/self._N[1]])
+        unit = jnp.array([self._unit[0] / self._N[0], self._unit[1] / self._N[1]])
         return jnp.dot(grid, unit)
 
     def _create_grid(self):
@@ -111,4 +113,3 @@ class FunctionSpace:
         The unit of dV is A^2.
         """
         return jnp.sqrt(jnp.linalg.norm(self._unit[0])**2 * jnp.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
-
