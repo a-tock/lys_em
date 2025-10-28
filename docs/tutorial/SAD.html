@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulation of Selected Area Diffraction (SAD) Pattern &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Simulation of Precession Electron Diffraction (PED) Pattern" href="PED.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../tutorial.html">Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Simulation of Selected Area Diffraction (SAD) Pattern</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PED.html">Simulation of Precession Electron Diffraction (PED) Pattern</a></li>
+<li class="toctree-l2"><a class="reference internal" href="StructureOptimization.html">プリセッション回折像による結晶構造最適化</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../tutorial.html">Tutorial</a></li>
+      <li class="breadcrumb-item active">Simulation of Selected Area Diffraction (SAD) Pattern</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tutorial/SAD.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="simulation-of-selected-area-diffraction-sad-pattern">
+<h1>Simulation of Selected Area Diffraction (SAD) Pattern<a class="headerlink" href="#simulation-of-selected-area-diffraction-sad-pattern" title="Link to this heading"></a></h1>
+<p>In this tutorial, we will simulate a selected area diffraction (SAD) pattern using the multislice method based on the crystal structure of gold (Au).</p>
+<p><strong>1. Creating a Crystal Structure</strong></p>
+<p>We first create a crystal structure of gold (Au) using lys_mat.CrystalStructure.
+Download the CIF file for Au from [here (<a class="reference download internal" download="" href="../_downloads/3ea2c6a318b0878c138c66e3f6933a66/Au.cif"><code class="xref download docutils literal notranslate"><span class="pre">Au</span> <span class="pre">CIF</span> <span class="pre">file</span></code></a>)] and save it in the <em>data</em> folder.
+For details on how to create and manipulate crystal structures, please refer to the lys_mat <a class="reference external" href="https://a-tock.github.io/lys_mat/tutorial.html">tutorial</a></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_mat</span> <span class="kn">import</span> <span class="n">CrystalStructure</span>
+<span class="n">crys</span> <span class="o">=</span> <span class="n">CrystalStructure</span><span class="o">.</span><span class="n">loadFrom</span><span class="p">(</span><span class="s2">&quot;data/Au.cif&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">crys</span><span class="p">)</span>
+<span class="c1"># Symmetry: cubic Fm-3m (No. 225), Point group: m-3m</span>
+<span class="c1"># a = 4.07825, b = 4.07825, c = 4.07825, alpha = 90.00000, beta = 90.00000, gamma = 90.00000</span>
+<span class="c1"># --- atoms (4) ---</span>
+<span class="c1"># 1: Au (Z = 79, Occupancy = 1) Pos = (0.00000, 0.00000, 0.00000)</span>
+<span class="c1"># 2: Au (Z = 79, Occupancy = 1) Pos = (0.00000, 0.50000, 0.50000)</span>
+<span class="c1"># 3: Au (Z = 79, Occupancy = 1) Pos = (0.50000, 0.00000, 0.50000)</span>
+<span class="c1"># 4: Au (Z = 79, Occupancy = 1) Pos = (0.50000, 0.50000, 0.00000)</span>
+</pre></div>
+</div>
+<p><strong>2. Defining the Computational Space</strong></p>
+<p>Define the simulation space using the FunctionSpace class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_em</span> <span class="kn">import</span> <span class="n">FunctionSpace</span>
+<span class="n">sp</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="o">.</span><span class="n">fromCrystal</span><span class="p">(</span><span class="n">crys</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<span class="c1"># The 2nd and 3rd arguments are the number of divisions per cell</span>
+<span class="c1"># The 4th is the number of slices along the thickness direction</span>
+</pre></div>
+</div>
+<p><strong>3. Creating the Crystal Potential</strong></p>
+<p>Generate the potential field formed by the crystal using the CrystalPotential class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_em</span> <span class="kn">import</span> <span class="n">CrystalPotential</span>
+<span class="n">pot</span> <span class="o">=</span> <span class="n">CrystalPotential</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">crys</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>4. Defining the Electron Microscope Parameters</strong></p>
+<p>Set up the electron microscope parameters using the TEM class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_em</span> <span class="kn">import</span> <span class="n">TEM</span>
+<span class="n">tem</span> <span class="o">=</span> <span class="n">TEM</span><span class="p">(</span><span class="mf">60e3</span><span class="p">)</span>    <span class="c1"># The first argument is the accelerating voltage (unit: V)</span>
+</pre></div>
+</div>
+<p><strong>5. Running the Multislice Simulation</strong></p>
+<p>Using the parameters defined in steps 1–4, perform the multislice calculation.
+This produces the selected area diffraction pattern, where each pixel corresponds to a reciprocal lattice point of the crystal:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_em</span> <span class="kn">import</span> <span class="n">multislice</span><span class="p">,</span> <span class="n">diffraction</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">diffraction</span><span class="p">(</span><span class="n">multislice</span><span class="p">(</span><span class="n">pot</span><span class="p">,</span> <span class="n">tem</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Visualize the diffraction pattern using matplotlib:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/Au_SAD.png" src="../_images/Au_SAD.png" />
+<p><strong>6. Optional: Rearranging the Data</strong></p>
+<p>You can rearrange the diffraction data so that the [0, 0] spot is placed at the center,
+and the pattern is displayed with evenly spaced data points along both x and y directions.
+This produces an image appearance similar to that observed in real experiments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">def</span> <span class="nf">rearrangeDiffraction</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">interval</span><span class="p">):</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">size</span><span class="o">//</span><span class="p">(</span><span class="n">interval</span><span class="o">*</span><span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">//</span><span class="p">(</span><span class="n">interval</span><span class="o">*</span><span class="mi">2</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">size</span><span class="o">//</span><span class="p">(</span><span class="n">interval</span><span class="o">*</span><span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">//</span><span class="p">(</span><span class="n">interval</span><span class="o">*</span><span class="mi">2</span><span class="p">)):</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">interval</span><span class="p">,</span> <span class="n">j</span><span class="o">*</span><span class="n">interval</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">res</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">rearrangeDiffraction</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">201</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/Au_SAD_rearrange.png" src="../_images/Au_SAD_rearrange.png" />
+<p><strong>Summary</strong></p>
+<p>Below is the complete code up to the execution of the multislice simulation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lys_mat</span> <span class="kn">import</span> <span class="n">CrystalStructure</span>
+<span class="kn">from</span> <span class="nn">lys_em</span> <span class="kn">import</span> <span class="n">FunctionSpace</span><span class="p">,</span> <span class="n">CrystalPotential</span><span class="p">,</span> <span class="n">TEM</span><span class="p">,</span> <span class="n">multislice</span><span class="p">,</span> <span class="n">diffraction</span>
+
+<span class="n">crys</span> <span class="o">=</span> <span class="n">CrystalStructure</span><span class="o">.</span><span class="n">loadFrom</span><span class="p">(</span><span class="s2">&quot;data/Au.cif&quot;</span><span class="p">)</span>
+<span class="n">sp</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="o">.</span><span class="n">fromCrystal</span><span class="p">(</span><span class="n">crys</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<span class="n">pot</span> <span class="o">=</span> <span class="n">CrystalPotential</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">crys</span><span class="p">)</span>
+<span class="n">tem</span> <span class="o">=</span> <span class="n">TEM</span><span class="p">(</span><span class="mf">60e3</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">diffraction</span><span class="p">(</span><span class="n">multislice</span><span class="p">(</span><span class="n">pot</span><span class="p">,</span> <span class="n">tem</span><span class="p">))</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="PED.html" class="btn btn-neutral float-right" title="Simulation of Precession Electron Diffraction (PED) Pattern" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

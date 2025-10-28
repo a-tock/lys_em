@@ -7,12 +7,11 @@ class TEM(object):
     TEM parameters used for simulations.
 
     Args:
-        acc (float): The acceleration voltage in kV.
+        acc (float): The acceleration voltage in V.
         convergence (float, optional): The convergence angle of the incident electron beam in radians. Default is 0.
         divergence (float, optional): The divergence angle of the electron beam in radians. Default is np.inf.
-        defocus (float, optional): The defocus value in angstroms. Default is 0.
         Cs (float, optional): The spherical aberration coefficient in millimeters. Default is 0.
-        direction (list or array-like, optional): The direction vector of the electron beam. Default is [0, 0, -1].
+        params (list, optional): A list of TEMParameter objects. Default is None.
     """
 
     def __init__(self, acc, convergence=0, divergence=np.inf, Cs=0, params=None):
@@ -66,13 +65,30 @@ class TEM(object):
             float:Relativistic mass
         '''
         return m + e * self.__acc / c**2
-    
+
     @property
     def params(self):
+        '''
+        Return a list of TEMParameter objects.
+
+        Returns:
+            list: List of TEMParameter objects
+        '''
         return self._parameters
 
 
 class TEMParameter:
+    """
+    TEMParameter has properties that are parameters that can usually be changed during TEM measurement.
+
+    Parameters:
+        defocus (float, optional): The defocus value in angstroms. Default is 0.
+        tilt (list or array-like, optional): The tilt angles of the electron beam in radians.
+            It has the format tilt=[theta, phi], where theta is the angle with respect to the optical axis,
+            and phi is the rotation angle in a plane perpendicular to the optical axis. Default is [0, 0].
+        position (list or array-like, optional): The position of the electron beam. Default is [0, 0].
+    """
+
     def __init__(self, defocus=0, tilt=[0, 0], position=[0, 0]):
         self._defocus = defocus
         self._tilt = np.radians(tilt)
@@ -87,26 +103,39 @@ class TEMParameter:
             array: The direction vector with shape (3,).
         """
         return np.array([np.sin(self._tilt[0]) * np.cos(self._tilt[1]), np.sin(self._tilt[0]) * np.sin(self._tilt[1]), -np.cos(self._tilt[0])])
-    
+
     @property
     def position(self):
+        """
+        Return the position of the electron beam.
+
+        Returns:
+            array: The position of the electron beam with shape (2,).
+        """
         return np.array(self._position)
-    
+
     @property
     def defocus(self):
+        """
+        Return the defocus value in angstroms.
+
+        Returns:
+            float: The defocus value in angstroms.
+        """
         return self._defocus
 
     def beamTilt(self, type="polar"):
         """
-        Return the tilt angles of the electron beam in radians.
+        Return the tilt angles of the electron beam in degrees.
+
+        Parameters:
+            type (str, optional): The type of the tilt angles. Possible values are "polar" and "cartesian". Default is "polar".
 
         Returns:
             array: The tilt angles with shape (2,).
         """
-
         if type == "polar":
             return np.degrees(self._tilt)
         elif type == "cartesian":
             x, y, z = self.beamDirection
             return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])
-

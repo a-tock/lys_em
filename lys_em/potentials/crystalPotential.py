@@ -27,6 +27,19 @@ class CrystalPotential(PotentialInterface):
         self._index = index
 
     def replace(self, crys=None, unit=None, pos=None, Uani=None, params=None):
+        """
+        Replaces the crystal potential with a new one.
+
+        Args:
+            crys (CrystalStructure, optional): The new crystal structure for creating a new potential.
+            unit (numpy.ndarray, optional): The new unit cell. If crys is not None, this will be ignored.
+            pos (list of numpy.ndarray, optional): The new atomic positions. If crys is not None, this will be ignored.
+            Uani (list of float, optional): The new isotropic displacement parameters. If crys is not None, this will be ignored.
+            params (dict, optional): The new parameters for the crystal structure. Keys are the names of Sympy.Symbols and values are the new values.
+
+        Returns:
+            CrystalPotential: The new crystal potential.
+        """
         if crys is None:
             crys = copy.deepcopy(self._crys)
             if unit is not None:
@@ -51,6 +64,15 @@ class CrystalPotential(PotentialInterface):
         return [[j for j, pos in enumerate(pos) if zList[i] <= pos[2] < zList[i + 1]] for i in range(len(zList) - 1)]
 
     def getPhase(self, beam):
+        """
+        Calculates the phase of the crystal potential.
+
+        Args:
+            beam (TEM): The TEM object representing the incident electron beam.
+
+        Returns:
+            float: The phase of the crystal potential.
+        """
         @jax.jit
         def _calcPhase(V_k, mask, kd, n):
             return jnp.fft.ifft2(V_k * jnp.exp(1j * n * kd) * mask)
@@ -64,6 +86,15 @@ class CrystalPotential(PotentialInterface):
         return f(V_ks, self.space.mask, kd, n).reshape(-1, *self.space.N[0:2]) / self.space.dV  # (ncells*division, Nx, Ny)
 
     def getSlicePotential(self, crys):
+        """
+        Calculates the potential of a crystal slice.
+
+        Args:
+            crys (CrystalStructure): The crystal object containing unit cell and lattice information.
+
+        Returns:
+            numpy.ndarray: The potential of the crystal slice.
+        """
         k = self.space.kvec
         q = jnp.array([k[:, :, 0], k[:, :, 1], k[:, :, 1] * 0]).transpose(1, 2, 0)
 

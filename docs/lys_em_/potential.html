@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Potential &mdash; lys_em  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="scatteringFactor" href="scatteringFactor.html" />
+    <link rel="prev" title="space" href="space.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            lys_em
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Potential</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-lys_em.potentials.interface">interface</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.potentials.interface.PotentialInterface"><code class="docutils literal notranslate"><span class="pre">PotentialInterface</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lys_em.potentials.crystalPotential">Various potentials</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.potentials.crystalPotential.CrystalPotential"><code class="docutils literal notranslate"><span class="pre">CrystalPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.potentials.magneticPotential.MagneticPotential"><code class="docutils literal notranslate"><span class="pre">MagneticPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.potentials.generalPotential.GeneralPotential"><code class="docutils literal notranslate"><span class="pre">GeneralPotential</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kinematical.html">kinematical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multislice.html">multislice</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">lys_em</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">Python API</a></li>
+      <li class="breadcrumb-item active">Potential</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/lys_em_/potential.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="potential">
+<h1>Potential<a class="headerlink" href="#potential" title="Link to this heading"></a></h1>
+<section id="module-lys_em.potentials.interface">
+<span id="interface"></span><h2>interface<a class="headerlink" href="#module-lys_em.potentials.interface" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lys_em.potentials.interface.PotentialInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.interface.</span></span><span class="sig-name descname"><span class="pre">PotentialInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/interface.html#PotentialInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.interface.PotentialInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Initializes the PotentialInterface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>space</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The simulation space object containing spatial parameters.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.interface.PotentialInterface.getPhase">
+<span class="sig-name descname"><span class="pre">getPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/interface.html#PotentialInterface.getPhase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.interface.PotentialInterface.getPhase" title="Link to this definition"></a></dt>
+<dd><p>Returns the phase of the potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The beam object representing the incident electron beam.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is
+the phase of the potential at the respective grid point in
+real space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.interface.PotentialInterface.getTransmissionFunction">
+<span class="sig-name descname"><span class="pre">getTransmissionFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/interface.html#PotentialInterface.getTransmissionFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.interface.PotentialInterface.getTransmissionFunction" title="Link to this definition"></a></dt>
+<dd><p>Returns the transmission function of the potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The beam object representing the incident electron beam.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is
+the transmission function at the respective grid point in
+real space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lys_em.potentials.interface.PotentialInterface.space">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">space</span></span><a class="headerlink" href="#lys_em.potentials.interface.PotentialInterface.space" title="Link to this definition"></a></dt>
+<dd><p>Returns the simulation space object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The simulation space object containing spatial parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace">FunctionSpace</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-lys_em.potentials.crystalPotential">
+<span id="various-potentials"></span><h2>Various potentials<a class="headerlink" href="#module-lys_em.potentials.crystalPotential" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lys_em.potentials.crystalPotential.CrystalPotential">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.crystalPotential.</span></span><span class="sig-name descname"><span class="pre">CrystalPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/crystalPotential.html#CrystalPotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.crystalPotential.CrystalPotential" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lys_em.potentials.interface.PotentialInterface" title="lys_em.potentials.interface.PotentialInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PotentialInterface</span></code></a></p>
+<p>Represents the potential of a crystal for electron microscopy simulations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>space</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The simulation space object containing spatial parameters.</p></li>
+<li><p><strong>crys</strong> (<em>CrystalStructure</em>) – The crystal object containing unit cell and lattice information.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.crystalPotential.CrystalPotential.getPhase">
+<span class="sig-name descname"><span class="pre">getPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/crystalPotential.html#CrystalPotential.getPhase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.crystalPotential.CrystalPotential.getPhase" title="Link to this definition"></a></dt>
+<dd><p>Calculates the phase of the crystal potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object representing the incident electron beam.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The phase of the crystal potential.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.crystalPotential.CrystalPotential.getSlicePotential">
+<span class="sig-name descname"><span class="pre">getSlicePotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/crystalPotential.html#CrystalPotential.getSlicePotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.crystalPotential.CrystalPotential.getSlicePotential" title="Link to this definition"></a></dt>
+<dd><p>Calculates the potential of a crystal slice.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>crys</strong> (<em>CrystalStructure</em>) – The crystal object containing unit cell and lattice information.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The potential of the crystal slice.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.crystalPotential.CrystalPotential.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Uani</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/crystalPotential.html#CrystalPotential.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.crystalPotential.CrystalPotential.replace" title="Link to this definition"></a></dt>
+<dd><p>Replaces the crystal potential with a new one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crys</strong> (<em>CrystalStructure</em><em>, </em><em>optional</em>) – The new crystal structure for creating a new potential.</p></li>
+<li><p><strong>unit</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – The new unit cell. If crys is not None, this will be ignored.</p></li>
+<li><p><strong>pos</strong> (<em>list</em><em> of </em><em>numpy.ndarray</em><em>, </em><em>optional</em>) – The new atomic positions. If crys is not None, this will be ignored.</p></li>
+<li><p><strong>Uani</strong> (<em>list</em><em> of </em><em>float</em><em>, </em><em>optional</em>) – The new isotropic displacement parameters. If crys is not None, this will be ignored.</p></li>
+<li><p><strong>params</strong> (<em>dict</em><em>, </em><em>optional</em>) – The new parameters for the crystal structure. Keys are the names of Sympy.Symbols and values are the new values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The new crystal potential.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#lys_em.potentials.crystalPotential.CrystalPotential" title="lys_em.potentials.crystalPotential.CrystalPotential">CrystalPotential</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-lys_em.potentials.magneticPotential">
+<dt class="sig sig-object py" id="lys_em.potentials.magneticPotential.MagneticPotential">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.magneticPotential.</span></span><span class="sig-name descname"><span class="pre">MagneticPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/magneticPotential.html#MagneticPotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.magneticPotential.MagneticPotential" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lys_em.potentials.interface.PotentialInterface" title="lys_em.potentials.interface.PotentialInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PotentialInterface</span></code></a></p>
+<p>Creates a MagneticPotential object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>space</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The simulation space object containing spatial parameters.</p></li>
+<li><p><strong>M</strong> (<em>numpy.ndarray</em>) – A 3D array of shape (Nx, Ny, Nz) containing the magnetic field strength in A/m at each grid point.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.magneticPotential.MagneticPotential.getPhase">
+<span class="sig-name descname"><span class="pre">getPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/magneticPotential.html#MagneticPotential.getPhase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.magneticPotential.MagneticPotential.getPhase" title="Link to this definition"></a></dt>
+<dd><p>Calculates the phase shift of the electron beam due to the magnetic field.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) containing the phase shift of the electron beam at each grid point in radians.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.magneticPotential.MagneticPotential.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">M</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/magneticPotential.html#MagneticPotential.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.magneticPotential.MagneticPotential.replace" title="Link to this definition"></a></dt>
+<dd><p>Replaces the magnetic field strength with a new array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>M</strong> (<em>numpy.ndarray</em>) – A 3D array of shape (Nx, Ny, Nz) containing the magnetic field strength in A/m at each grid point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new MagneticPotential object with the replaced magnetic field strength.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#lys_em.potentials.magneticPotential.MagneticPotential" title="lys_em.potentials.magneticPotential.MagneticPotential">MagneticPotential</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-lys_em.potentials.generalPotential">
+<dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.generalPotential.</span></span><span class="sig-name descname"><span class="pre">GeneralPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lys_em.potentials.interface.PotentialInterface" title="lys_em.potentials.interface.PotentialInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PotentialInterface</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential.getPhase">
+<span class="sig-name descname"><span class="pre">getPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential.getPhase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential.getPhase" title="Link to this definition"></a></dt>
+<dd><p>Returns the phase of the potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The beam object representing the incident electron beam.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is
+the phase of the potential at the respective grid point in
+real space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">potential</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential.replace" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="space.html" class="btn btn-neutral float-left" title="space" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scatteringFactor.html" class="btn btn-neutral float-right" title="scatteringFactor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hidenori Tsuji.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

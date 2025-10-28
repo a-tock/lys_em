@@ -15,5 +15,6 @@ This library is under developement.
    :caption: Contents:
 
    install
+   tutorial
    api
    contributing

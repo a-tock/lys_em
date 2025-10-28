@@ -81,6 +81,10 @@ class FunctionSpace:
 
     @property
     def rvec(self):
+        """
+        Return 2-dimensional real space grid. The unit is A.
+        Each cell has (a/Nx, b/Ny) length in real space.
+        """
         grid = self._create_grid()
         unit = jnp.array([self._unit[0] / self._N[0], self._unit[1] / self._N[1]])
         return jnp.dot(grid, unit)
@@ -95,14 +99,27 @@ class FunctionSpace:
 
     @property
     def N(self):
+        """
+        Return a tuple of shape (2,) containing the number of grid points in
+        the x and y directions.
+        """
+
         return self._N
 
     @property
     def c(self):
+        """
+        Return lattice constant c of the crystal structure in Angstrom.
+        """
         return self._c
 
     @property
     def dz(self):
+        """
+        Return slice thickness of the crystal potential.
+
+        The slice thickness of the crystal potential is the distance between two successive slices of the crystal potential.
+        """
         return self._c / self._N[2]
 
     @property
