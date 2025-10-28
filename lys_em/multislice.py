@@ -156,3 +156,7 @@ def getChi(sp, tem):
         return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - df * ((l * k)**2) / 2)
 
     return _chi
+
+
+def diffraction(data):
+    return jnp.abs(jnp.fft.fft2(data))**2
