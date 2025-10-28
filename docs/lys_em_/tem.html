@@ -46,22 +46,30 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tem</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.tem.TEM"><code class="docutils literal notranslate"><span class="pre">TEM</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.beamDirection"><code class="docutils literal notranslate"><span class="pre">TEM.beamDirection</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.chi"><code class="docutils literal notranslate"><span class="pre">TEM.chi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.Cs"><code class="docutils literal notranslate"><span class="pre">TEM.Cs</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.k_in"><code class="docutils literal notranslate"><span class="pre">TEM.k_in</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.k_max"><code class="docutils literal notranslate"><span class="pre">TEM.k_max</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.params"><code class="docutils literal notranslate"><span class="pre">TEM.params</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.relativisticMass"><code class="docutils literal notranslate"><span class="pre">TEM.relativisticMass</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEM.wavelength"><code class="docutils literal notranslate"><span class="pre">TEM.wavelength</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.tem.TEMParameter"><code class="docutils literal notranslate"><span class="pre">TEMParameter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEMParameter.beamDirection"><code class="docutils literal notranslate"><span class="pre">TEMParameter.beamDirection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEMParameter.beamTilt"><code class="docutils literal notranslate"><span class="pre">TEMParameter.beamTilt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEMParameter.defocus"><code class="docutils literal notranslate"><span class="pre">TEMParameter.defocus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.tem.TEMParameter.position"><code class="docutils literal notranslate"><span class="pre">TEMParameter.position</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="potential.html">Potential</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crystalPotential.html">crystalPotential</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kinematical.html">kinematical</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multislice.html">multislice</a></li>
 </ul>
@@ -98,42 +106,30 @@
 <span id="tem"></span><h1>tem<a class="headerlink" href="#module-lys_em.tem" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="lys_em.tem.TEM">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.tem.</span></span><span class="sig-name descname"><span class="pre">TEM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">acc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divergence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defocus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-1]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/tem.html#TEM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.tem.TEM" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.tem.</span></span><span class="sig-name descname"><span class="pre">TEM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">acc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divergence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/tem.html#TEM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.tem.TEM" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>TEM parameters used for simulations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>acc</strong> (<em>float</em>) – The acceleration voltage in kV.</p></li>
+<li><p><strong>acc</strong> (<em>float</em>) – The acceleration voltage in V.</p></li>
 <li><p><strong>convergence</strong> (<em>float</em><em>, </em><em>optional</em>) – The convergence angle of the incident electron beam in radians. Default is 0.</p></li>
 <li><p><strong>divergence</strong> (<em>float</em><em>, </em><em>optional</em>) – The divergence angle of the electron beam in radians. Default is np.inf.</p></li>
-<li><p><strong>defocus</strong> (<em>float</em><em>, </em><em>optional</em>) – The defocus value in angstroms. Default is 0.</p></li>
 <li><p><strong>Cs</strong> (<em>float</em><em>, </em><em>optional</em>) – The spherical aberration coefficient in millimeters. Default is 0.</p></li>
-<li><p><strong>direction</strong> (<em>list</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – The direction vector of the electron beam. Default is [0, 0, -1].</p></li>
+<li><p><strong>params</strong> (<em>list</em><em>, </em><em>optional</em>) – A list of TEMParameter objects. Default is None.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="lys_em.tem.TEM.beamDirection">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beamDirection</span></span><a class="headerlink" href="#lys_em.tem.TEM.beamDirection" title="Link to this definition"></a></dt>
-<dd><p>Return the direction vector of the electron beam.</p>
+<dt class="sig sig-object py" id="lys_em.tem.TEM.Cs">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Cs</span></span><a class="headerlink" href="#lys_em.tem.TEM.Cs" title="Link to this definition"></a></dt>
+<dd><p>Get spherical aberration coefficient in angstrom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The direction vector with shape (3,).</p>
+<dd class="field-odd"><p>Spherical aberration coefficient</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>array</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lys_em.tem.TEM.chi">
-<span class="sig-name descname"><span class="pre">chi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/tem.html#TEM.chi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.tem.TEM.chi" title="Link to this definition"></a></dt>
-<dd><p>Return net phase error from spherical aberration and defocus.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>k</strong> (<em>sequence</em><em> of </em><em>length 2 array</em>) – The wavenumber.</p>
+<dd class="field-even"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -148,6 +144,20 @@
 <dt class="sig sig-object py" id="lys_em.tem.TEM.k_max">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">k_max</span></span><a class="headerlink" href="#lys_em.tem.TEM.k_max" title="Link to this definition"></a></dt>
 <dd><p>Return a lateral wavenumber of most-tilted incident electron determined by convergence angle.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lys_em.tem.TEM.params">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#lys_em.tem.TEM.params" title="Link to this definition"></a></dt>
+<dd><p>Return a list of TEMParameter objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of TEMParameter objects</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -168,6 +178,83 @@
 <dt class="sig sig-object py" id="lys_em.tem.TEM.wavelength">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wavelength</span></span><a class="headerlink" href="#lys_em.tem.TEM.wavelength" title="Link to this definition"></a></dt>
 <dd><p>Return a wavelength of probe electron in angstrom.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lys_em.tem.TEMParameter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.tem.</span></span><span class="sig-name descname"><span class="pre">TEMParameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">defocus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/tem.html#TEMParameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.tem.TEMParameter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>TEMParameter has properties that are parameters that can usually be changed during TEM measurement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>defocus</strong> (<em>float</em><em>, </em><em>optional</em>) – The defocus value in angstroms. Default is 0.</p></li>
+<li><p><strong>tilt</strong> (<em>list</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – The tilt angles of the electron beam in radians.
+It has the format tilt=[theta, phi], where theta is the angle with respect to the optical axis,
+and phi is the rotation angle in a plane perpendicular to the optical axis. Default is [0, 0].</p></li>
+<li><p><strong>position</strong> (<em>list</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – The position of the electron beam. Default is [0, 0].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="lys_em.tem.TEMParameter.beamDirection">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beamDirection</span></span><a class="headerlink" href="#lys_em.tem.TEMParameter.beamDirection" title="Link to this definition"></a></dt>
+<dd><p>Return the direction vector of the electron beam.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The direction vector with shape (3,).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.tem.TEMParameter.beamTilt">
+<span class="sig-name descname"><span class="pre">beamTilt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'polar'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/tem.html#TEMParameter.beamTilt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.tem.TEMParameter.beamTilt" title="Link to this definition"></a></dt>
+<dd><p>Return the tilt angles of the electron beam in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>type</strong> (<em>str</em><em>, </em><em>optional</em>) – The type of the tilt angles. Possible values are “polar” and “cartesian”. Default is “polar”.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The tilt angles with shape (2,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lys_em.tem.TEMParameter.defocus">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">defocus</span></span><a class="headerlink" href="#lys_em.tem.TEMParameter.defocus" title="Link to this definition"></a></dt>
+<dd><p>Return the defocus value in angstroms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The defocus value in angstroms.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lys_em.tem.TEMParameter.position">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">position</span></span><a class="headerlink" href="#lys_em.tem.TEMParameter.position" title="Link to this definition"></a></dt>
+<dd><p>Return the position of the electron beam.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The position of the electron beam with shape (2,).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>array</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

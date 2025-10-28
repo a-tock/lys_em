@@ -43,6 +43,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 </ul>
@@ -72,119 +74,185 @@
            <div itemprop="articleBody">
              
   <h1>Source code for lys_em.multislice</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">dask.array</span> <span class="k">as</span> <span class="nn">da</span>
-<span class="kn">import</span> <span class="nn">dask</span>
-
-<span class="kn">from</span> <span class="nn">lys</span> <span class="kn">import</span> <span class="n">DaskWave</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">TEM</span><span class="p">,</span> <span class="n">CrystalPotential</span><span class="p">,</span> <span class="n">FunctionSpace</span>
+<span></span><span class="kn">import</span> <span class="nn">jax</span>
+<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+<span class="kn">from</span> <span class="nn">jax.sharding</span> <span class="kn">import</span> <span class="n">PartitionSpec</span> <span class="k">as</span> <span class="n">P</span>
+<span class="kn">from</span> <span class="nn">jax.experimental.shard_map</span> <span class="kn">import</span> <span class="n">shard_map</span>
 
 
-<div class="viewcode-block" id="calcMultiSliceDiffraction">
-<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.calcMultiSliceDiffraction">[docs]</a>
-<span class="k">def</span> <span class="nf">calcMultiSliceDiffraction</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">numOfCells</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="mf">60e3</span><span class="p">,</span> <span class="n">Nx</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">Ny</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">division</span><span class="o">=</span><span class="s2">&quot;Auto&quot;</span><span class="p">,</span> <span class="n">theta_list</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">returnDepth</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="multislice">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.multislice">[docs]</a>
+<span class="k">def</span> <span class="nf">multislice</span><span class="p">(</span><span class="n">pot</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">probe</span><span class="o">=</span><span class="s2">&quot;TEM&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.</span>
+<span class="sd">    Calculate the multislice simulation.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        c (CrystalStructure): The crystal structure.</span>
-<span class="sd">        numOfCells (int): The number of unit cells in the z-direction.</span>
-<span class="sd">        V (float, optional): Accelerating voltage in volts. Default is 60e3.</span>
-<span class="sd">        Nx (int, optional): Number of grid points along the x-direction. Default is 128.</span>
-<span class="sd">        Ny (int, optional): Number of grid points along the y-direction. Default is 128.</span>
-<span class="sd">        division (str, optional): Division strategy for calculating potential. Default is &quot;Auto&quot;.</span>
-<span class="sd">        theta_list (list, optional): List of theta angles for diffraction. Default is [[0, 0]].</span>
-<span class="sd">        returnDepth (bool, optional): Whether to return depth information in the result. Default is True.</span>
+<span class="sd">        pot (CrystalPotential): The CrystalPotential object.</span>
+<span class="sd">        tem (TEM) : The TEM object.</span>
+<span class="sd">        probe (str or array) : The probe type or the probe wave function. Probe type can be &quot;TEM&quot; or &quot;STEM&quot;.</span>
+<span class="sd">            The probe wave function should be a 2D array of shape (Nx, Ny). Default is &quot;TEM&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        DaskWave: The calculated diffraction pattern, optionally including depth information.</span>
+<span class="sd">        phi (numpy.ndarray) : The multislice simulation result.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">make_mesh</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">()),</span> <span class="p">),</span> <span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">))</span>
+    <span class="n">fft2</span> <span class="o">=</span> <span class="n">shard_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">mesh</span><span class="o">=</span><span class="n">mesh</span><span class="p">,</span> <span class="n">in_specs</span><span class="o">=</span><span class="n">P</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">out_specs</span><span class="o">=</span><span class="n">P</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="n">ifft2</span> <span class="o">=</span> <span class="n">shard_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">mesh</span><span class="o">=</span><span class="n">mesh</span><span class="p">,</span> <span class="n">in_specs</span><span class="o">=</span><span class="n">P</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">out_specs</span><span class="o">=</span><span class="n">P</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
-    <span class="n">sp</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="o">.</span><span class="n">fromCrystal</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">)</span>
+    <span class="n">sp</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">space</span>
+    <span class="n">t_r</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">getTransmissionFunction</span><span class="p">(</span><span class="n">tem</span><span class="p">)</span>
+    <span class="n">P_k</span> <span class="o">=</span> <span class="n">getPropagationTerm</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">)</span>  <span class="c1"># shape (len(params), Nx, Ny)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">getWaveFunction</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">probe</span><span class="o">=</span><span class="n">probe</span><span class="p">)</span>  <span class="c1"># shape (len(params), Nx, Ny)</span>
 
-    <span class="c1"># prepare potential</span>
-    <span class="n">tem</span> <span class="o">=</span> <span class="n">TEM</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
-    <span class="n">pot</span> <span class="o">=</span> <span class="n">CrystalPotential</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">numOfCells</span><span class="p">,</span> <span class="n">division</span><span class="o">=</span><span class="n">division</span><span class="p">)</span>
-
-    <span class="c1"># prepare list of thetas</span>
-    <span class="n">ncore</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">DaskWave</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">ncores</span><span class="p">())</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">DaskWave</span><span class="p">,</span> <span class="s2">&quot;client&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta_list</span><span class="p">)</span> <span class="o">/</span> <span class="n">ncore</span><span class="p">),</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pot</span><span class="p">))</span> <span class="k">if</span> <span class="n">returnDepth</span> <span class="k">else</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta_list</span><span class="p">)</span> <span class="o">/</span> <span class="n">ncore</span><span class="p">),</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">)</span>
-    <span class="n">thetas</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta_list</span><span class="p">[</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">i</span><span class="p">:</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">)]</span>
-
-    <span class="c1"># Dstribute all tasks to each worker</span>
-    <span class="n">delays</span> <span class="o">=</span> <span class="p">[</span><span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span><span class="n">__calc_single</span><span class="p">,</span> <span class="n">traverse</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">sp</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">returnDepth</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">thetas</span><span class="p">]</span>
-
-    <span class="c1"># shape: (ncore, theta, thickness, nx, ny)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">da</span><span class="o">.</span><span class="n">from_delayed</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">delays</span><span class="p">]</span>
-    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">Nx</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">Ny</span><span class="p">)</span>
-    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pot</span><span class="o">.</span><span class="n">dz</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">pot</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pot</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">returnDepth</span><span class="p">:</span>
-        <span class="c1"># shape is (ncore, thetas, thickness, nx, ny)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">DaskWave</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">res</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pot</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># shape is (ncore, thetas, nx, ny)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">DaskWave</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">res</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span></div>
-
-
-
-<span class="k">def</span> <span class="nf">__calc_single</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">returnDepth</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Caluclate multislice simulations for list of thetas.</span>
-<span class="sd">    The shape of returned array will be (Thetas, Nx, Ny) if returnDepth is True, otherwise (Thetas, thickness, Nx, Ny)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span> <span class="ow">in</span> <span class="n">thetas</span><span class="p">:</span>
-        <span class="n">P_k</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">getPropagationTerm</span><span class="p">(</span><span class="n">tem</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span> <span class="n">pot</span><span class="o">.</span><span class="n">dz</span><span class="p">,</span> <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">)</span>
-        <span class="n">phi</span> <span class="o">=</span> <span class="n">_apply</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">getArray</span><span class="p">(),</span> <span class="n">pot</span><span class="p">,</span> <span class="n">P_k</span> <span class="o">*</span> <span class="n">sp</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">returnDepth</span><span class="p">)</span>
-        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">pots</span><span class="p">,</span> <span class="n">P_k</span><span class="p">,</span> <span class="n">returnDepth</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculate multislice simulation.</span>
-<span class="sd">    if returnDepth==True, ndarray of (thickness, Nx, Ny) dimension will returnd, otherwise the shape will be (Nx, Ny).</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        numpy array: see above.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">V_r</span> <span class="ow">in</span> <span class="n">pots</span><span class="p">:</span>
-        <span class="n">phi</span> <span class="o">=</span> <span class="n">ifft</span><span class="p">(</span><span class="n">P_k</span> <span class="o">*</span> <span class="n">fft</span><span class="p">(</span><span class="n">phi</span> <span class="o">*</span> <span class="n">V_r</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">returnDepth</span><span class="p">:</span>
-            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">returnDepth</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">pots</span><span class="p">,</span> <span class="n">P_k</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">body</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">V_r</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">ifft2</span><span class="p">(</span><span class="n">fft2</span><span class="p">(</span><span class="n">phi</span> <span class="o">*</span> <span class="n">V_r</span><span class="p">)</span> <span class="o">*</span> <span class="n">P_k</span><span class="p">),</span> <span class="kc">None</span>
+        <span class="n">phi</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">pots</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">phi</span>
 
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">_apply</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">t_r</span><span class="p">,</span> <span class="n">P_k</span><span class="p">)</span>
 
-<div class="viewcode-block" id="makePrecessionTheta">
-<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.makePrecessionTheta">[docs]</a>
-<span class="k">def</span> <span class="nf">makePrecessionTheta</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">360</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;deg&quot;</span><span class="p">,</span> <span class="n">angle_offset</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="n">probe</span> <span class="o">==</span> <span class="s2">&quot;TEM&quot;</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">getAberrationFunction</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">)</span>  <span class="c1"># shape (len(params), Nx, Ny)</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">ifft2</span><span class="p">(</span><span class="n">fft2</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">H</span> <span class="o">*</span> <span class="n">sp</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="getPropagationTerm">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.getPropagationTerm">[docs]</a>
+<span class="k">def</span> <span class="nf">getPropagationTerm</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Create list of precesssion angles in degree</span>
+<span class="sd">    Return the propagation term of the wave transfer function.</span>
+
+<span class="sd">    The propagation term is calculated from the wave number k and the</span>
+<span class="sd">    propagation distance dz. The wave number k is calculated from the</span>
+<span class="sd">    crystal structure and the wavelength lamb. The propagation distance dz</span>
+<span class="sd">    is given in Angstrom.</span>
+
+<span class="sd">    The wave number k is represented as a 2D array of shape (Nx, Ny) where</span>
+<span class="sd">    each element is the wave number at the respective grid point in</span>
+<span class="sd">    reciprocal space. The unit of k is rad/A.</span>
+
+<span class="sd">    The propagation term is calculated as exp(1j * k * dz).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        alpha(float): The precession angle in degree.</span>
-<span class="sd">        N(int, optional): The number of sampling points. Default is 90.</span>
-<span class="sd">        min(float, optional): The minimum angle in degree. Default is 0.</span>
-<span class="sd">        max(float, optional): The maximum angle in degree. Default is 360.</span>
-<span class="sd">        unit(&#39;deg&#39; or &#39;rad&#39;, optional): The unit of angles. Default is &#39;deg&#39;.</span>
-<span class="sd">        angle_offset(list of length 2, optional): The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].</span>
+<span class="sd">        sp (FunctionSpace): The function space object.</span>
+<span class="sd">        tem (TEM): The TEM object.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        list of length 2 sequence: The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), ...]</span>
+<span class="sd">        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is</span>
+<span class="sd">        the propagation term at the respective grid point in reciprocal space.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;deg&quot;</span><span class="p">:</span>
-        <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
-    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="nb">min</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="nb">max</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)]))</span>
-    <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;deg&quot;</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
-    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">angle_offset</span><span class="p">)</span></div>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">vmap</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span> <span class="nf">_propagationTerm</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+        <span class="n">tilt</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">kvec</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">theta</span><span class="p">)))</span> <span class="o">-</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">tem</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">*</span> <span class="n">sp</span><span class="o">.</span><span class="n">k</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">/</span> <span class="n">jnp</span><span class="o">.</span><span class="n">pi</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">dz</span> <span class="o">*</span> <span class="n">tilt</span><span class="p">)</span> <span class="o">*</span> <span class="n">sp</span><span class="o">.</span><span class="n">mask</span>
+
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">jnp</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">beamTilt</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;cartesian&quot;</span><span class="p">))</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">tem</span><span class="o">.</span><span class="n">params</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">_propagationTerm</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="getWaveFunction">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.getWaveFunction">[docs]</a>
+<span class="k">def</span> <span class="nf">getWaveFunction</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">,</span> <span class="n">probe</span><span class="o">=</span><span class="s2">&quot;TEM&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the wave function of the multislice simulation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sp (FunctionSpace): The function space object.</span>
+<span class="sd">        tem (TEM) : The TEM object.</span>
+<span class="sd">        probe (str or array) : The probe type or the probe wave function. Probe type can be &quot;TEM&quot; or &quot;STEM&quot;.</span>
+<span class="sd">            The probe wave function should be a 2D array of shape (Nx, Ny). Default is &quot;TEM&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is the wave function at the respective grid point in real space.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">vmap</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span> <span class="nf">_shiftProbe</span><span class="p">(</span><span class="n">probe_func</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+        <span class="n">wave</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">probe_func</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">sp</span><span class="o">.</span><span class="n">kvec</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pos</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">wave</span> <span class="o">/</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">wave</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">vmap</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span> <span class="nf">_probe</span><span class="p">(</span><span class="n">chi_n</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">kvec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tem</span><span class="o">.</span><span class="n">k_max</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">chi_n</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Nx, Ny</span>
+
+    <span class="n">defocus</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">defocus</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">tem</span><span class="o">.</span><span class="n">params</span><span class="p">])</span>
+    <span class="n">chi</span> <span class="o">=</span> <span class="n">getChi</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">probe</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;TEM&quot;</span><span class="p">,</span> <span class="s2">&quot;STEM&quot;</span><span class="p">]:</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">_probe</span><span class="p">(</span><span class="n">chi</span><span class="p">(</span><span class="n">defocus</span><span class="p">))</span>  <span class="c1"># len(params), Nx, Ny</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">probe</span><span class="p">)(</span><span class="n">defocus</span><span class="p">)</span>
+
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">position</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">tem</span><span class="o">.</span><span class="n">params</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">_shiftProbe</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="getAberrationFunction">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.getAberrationFunction">[docs]</a>
+<span class="k">def</span> <span class="nf">getAberrationFunction</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the aberration function of the multislice simulation.</span>
+
+<span class="sd">    The aberration function is calculated from the chi function and the defocus values.</span>
+<span class="sd">    The chi function is calculated from the wave number k and the spherical</span>
+<span class="sd">    aberration coefficient Cs. The defocus values are given in Angstrom.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sp (FunctionSpace): The function space object.</span>
+<span class="sd">        tem (TEM) : The TEM object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: A 2D array of shape (len(params), Nx, Ny) where each element is the aberration function at the respective grid point in real space.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chi</span> <span class="o">=</span> <span class="n">getChi</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">)</span>
+    <span class="n">defocus</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">defocus</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">tem</span><span class="o">.</span><span class="n">params</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">chi</span><span class="p">(</span><span class="n">defocus</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="getChi">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.getChi">[docs]</a>
+<span class="k">def</span> <span class="nf">getChi</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">tem</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the chi function of the multislice simulation.</span>
+
+<span class="sd">    The chi function is calculated from the wave number k and the spherical</span>
+<span class="sd">    aberration coefficient Cs. The wave number k is calculated from the function</span>
+<span class="sd">    space object sp and the wavelength lambda of the TEM object tem. The spherical</span>
+<span class="sd">    aberration coefficient Cs is given in millimeters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sp (FunctionSpace): The function space object.</span>
+<span class="sd">        tem (TEM) : The TEM object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        callable: A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">k</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">tem</span><span class="o">.</span><span class="n">wavelength</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">tem</span><span class="o">.</span><span class="n">Cs</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">vmap</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span> <span class="nf">_chi</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">l</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cs</span> <span class="o">*</span> <span class="p">((</span><span class="n">l</span> <span class="o">*</span> <span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">-</span> <span class="n">df</span> <span class="o">*</span> <span class="p">((</span><span class="n">l</span> <span class="o">*</span> <span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_chi</span></div>
+
+
+
+<div class="viewcode-block" id="diffraction">
+<a class="viewcode-back" href="../../lys_em_/multislice.html#lys_em.multislice.diffraction">[docs]</a>
+<span class="k">def</span> <span class="nf">diffraction</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">data</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span></div>
 
 </pre></div>
 

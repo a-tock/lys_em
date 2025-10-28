@@ -46,15 +46,21 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="potential.html">Potential</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crystalPotential.html">crystalPotential</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kinematical.html">kinematical</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">multislice</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.calcMultiSliceDiffraction"><code class="docutils literal notranslate"><span class="pre">calcMultiSliceDiffraction()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.makePrecessionTheta"><code class="docutils literal notranslate"><span class="pre">makePrecessionTheta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.diffraction"><code class="docutils literal notranslate"><span class="pre">diffraction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getAberrationFunction"><code class="docutils literal notranslate"><span class="pre">getAberrationFunction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getChi"><code class="docutils literal notranslate"><span class="pre">getChi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getPropagationTerm"><code class="docutils literal notranslate"><span class="pre">getPropagationTerm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getWaveFunction"><code class="docutils literal notranslate"><span class="pre">getWaveFunction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.multislice"><code class="docutils literal notranslate"><span class="pre">multislice()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -90,51 +96,126 @@
   <section id="module-lys_em.multislice">
 <span id="multislice"></span><h1>multislice<a class="headerlink" href="#module-lys_em.multislice" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="lys_em.multislice.calcMultiSliceDiffraction">
-<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">calcMultiSliceDiffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numOfCells</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">division</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[[0,</span> <span class="pre">0]]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnDepth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#calcMultiSliceDiffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.calcMultiSliceDiffraction" title="Link to this definition"></a></dt>
-<dd><p>Calculate the multi-slice diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.</p>
+<dt class="sig sig-object py" id="lys_em.multislice.diffraction">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">diffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#diffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.diffraction" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.getAberrationFunction">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">getAberrationFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#getAberrationFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.getAberrationFunction" title="Link to this definition"></a></dt>
+<dd><p>Return the aberration function of the multislice simulation.</p>
+<p>The aberration function is calculated from the chi function and the defocus values.
+The chi function is calculated from the wave number k and the spherical
+aberration coefficient Cs. The defocus values are given in Angstrom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
-<li><p><strong>numOfCells</strong> (<em>int</em>) – The number of unit cells in the z-direction.</p></li>
-<li><p><strong>V</strong> (<em>float</em><em>, </em><em>optional</em>) – Accelerating voltage in volts. Default is 60e3.</p></li>
-<li><p><strong>Nx</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the x-direction. Default is 128.</p></li>
-<li><p><strong>Ny</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the y-direction. Default is 128.</p></li>
-<li><p><strong>division</strong> (<em>str</em><em>, </em><em>optional</em>) – Division strategy for calculating potential. Default is “Auto”.</p></li>
-<li><p><strong>theta_list</strong> (<em>list</em><em>, </em><em>optional</em>) – List of theta angles for diffraction. Default is [[0, 0]].</p></li>
-<li><p><strong>returnDepth</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return depth information in the result. Default is True.</p></li>
+<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
+<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The calculated diffraction pattern, optionally including depth information.</p>
+<dd class="field-even"><p>A 2D array of shape (len(params), Nx, Ny) where each element is the aberration function at the respective grid point in real space.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DaskWave</p>
+<dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="lys_em.multislice.makePrecessionTheta">
-<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">makePrecessionTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">360</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#makePrecessionTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.makePrecessionTheta" title="Link to this definition"></a></dt>
-<dd><p>Create list of precesssion angles in degree</p>
+<dt class="sig sig-object py" id="lys_em.multislice.getChi">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">getChi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#getChi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.getChi" title="Link to this definition"></a></dt>
+<dd><p>Return the chi function of the multislice simulation.</p>
+<p>The chi function is calculated from the wave number k and the spherical
+aberration coefficient Cs. The wave number k is calculated from the function
+space object sp and the wavelength lambda of the TEM object tem. The spherical
+aberration coefficient Cs is given in millimeters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>alpha</strong> (<em>float</em>) – The precession angle in degree.</p></li>
-<li><p><strong>N</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of sampling points. Default is 90.</p></li>
-<li><p><strong>min</strong> (<em>float</em><em>, </em><em>optional</em>) – The minimum angle in degree. Default is 0.</p></li>
-<li><p><strong>max</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum angle in degree. Default is 360.</p></li>
-<li><p><strong>unit</strong> (<em>'deg'</em><em> or </em><em>'rad'</em><em>, </em><em>optional</em>) – The unit of angles. Default is ‘deg’.</p></li>
-<li><p><strong>angle_offset</strong> (<em>list</em><em> of </em><em>length 2</em><em>, </em><em>optional</em>) – The offset angles in the form of [theta_x, theta_y]. Default is [0, 0].</p></li>
+<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
+<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The list of angles in the form of [(theta_x1, theta_y1), (theta_x2, theta_y2), …]</p>
+<dd class="field-even"><p>A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of length 2 sequence</p>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.getPropagationTerm">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">getPropagationTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#getPropagationTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.getPropagationTerm" title="Link to this definition"></a></dt>
+<dd><p>Return the propagation term of the wave transfer function.</p>
+<p>The propagation term is calculated from the wave number k and the
+propagation distance dz. The wave number k is calculated from the
+crystal structure and the wavelength lamb. The propagation distance dz
+is given in Angstrom.</p>
+<p>The wave number k is represented as a 2D array of shape (Nx, Ny) where
+each element is the wave number at the respective grid point in
+reciprocal space. The unit of k is rad/A.</p>
+<p>The propagation term is calculated as exp(1j * k * dz).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
+<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is
+the propagation term at the respective grid point in reciprocal space.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.getWaveFunction">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">getWaveFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEM'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#getWaveFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.getWaveFunction" title="Link to this definition"></a></dt>
+<dd><p>Calculate the wave function of the multislice simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
+<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>probe</strong> (<em>str</em><em> or </em><em>array</em>) – The probe type or the probe wave function. Probe type can be “TEM” or “STEM”.
+The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TEM”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is the wave function at the respective grid point in real space.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lys_em.multislice.multislice">
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">multislice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEM'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#multislice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.multislice" title="Link to this definition"></a></dt>
+<dd><p>Calculate the multislice simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pot</strong> (<a class="reference internal" href="potential.html#lys_em.potentials.crystalPotential.CrystalPotential" title="lys_em.potentials.crystalPotential.CrystalPotential"><em>CrystalPotential</em></a>) – The CrystalPotential object.</p></li>
+<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>probe</strong> (<em>str</em><em> or </em><em>array</em>) – The probe type or the probe wave function. Probe type can be “TEM” or “STEM”.
+The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TEM”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The multislice simulation result.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>phi (numpy.ndarray)</p>
 </dd>
 </dl>
 </dd></dl>

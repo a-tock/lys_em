@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="multislice" href="multislice.html" />
-    <link rel="prev" title="crystalPotential" href="crystalPotential.html" /> 
+    <link rel="prev" title="scatteringFactor" href="scatteringFactor.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,11 +47,12 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="space.html">space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="potential.html">Potential</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crystalPotential.html">crystalPotential</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">kinematical</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.calcKinematicalDiffraction"><code class="docutils literal notranslate"><span class="pre">calcKinematicalDiffraction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.kinematical.debyeWallerFactors"><code class="docutils literal notranslate"><span class="pre">debyeWallerFactors()</span></code></a></li>
@@ -94,23 +95,24 @@
 <span id="kinematical"></span><h1>kinematical<a class="headerlink" href="#module-lys_em.kinematical" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="lys_em.kinematical.calcKinematicalDiffraction">
-<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">calcKinematicalDiffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TEM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numOfCells</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#calcKinematicalDiffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.calcKinematicalDiffraction" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">calcKinematicalDiffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TEM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TEMParam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numOfCells</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#calcKinematicalDiffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.calcKinematicalDiffraction" title="Link to this definition"></a></dt>
 <dd><p>Calculate the kinematical diffraction pattern for a given crystal structure and transmission electron microscope (TEM) settings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>c</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
+<li><p><strong>crys</strong> (<em>CrystalStructure</em>) – The crystal structure.</p></li>
 <li><p><strong>TEM</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The transmission electron microscope settings.</p></li>
+<li><p><strong>TEMParam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEMParameter" title="lys_em.tem.TEMParameter"><em>TEMParameter</em></a>) – The transmission electron microscope parameters.</p></li>
 <li><p><strong>numOfCells</strong> (<em>int</em>) – The number of unit cells in the z-direction.</p></li>
 <li><p><strong>Nx</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the x-direction. Default is 128.</p></li>
 <li><p><strong>Ny</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of grid points along the y-direction. Default is 128.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The intensity of the kinematical diffraction pattern.</p>
+<dd class="field-even"><p>The kinematical diffraction pattern for the given crystal structure and TEM settings.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>array_like</p>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -158,7 +160,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lys_em.kinematical.structureFactors">
-<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">structureFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'atoms'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#structureFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.structureFactors" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lys_em.kinematical.</span></span><span class="sig-name descname"><span class="pre">structureFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/kinematical.html#structureFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.kinematical.structureFactors" title="Link to this definition"></a></dt>
 <dd><p>Calculate the structure factors for a given crystal structure and k vectors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -183,7 +185,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="crystalPotential.html" class="btn btn-neutral float-left" title="crystalPotential" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scatteringFactor.html" class="btn btn-neutral float-left" title="scatteringFactor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="multislice.html" class="btn btn-neutral float-right" title="multislice" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -44,6 +44,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -80,10 +81,10 @@
  | <a href="#D"><strong>D</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
- | <a href="#I"><strong>I</strong></a>
  | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
@@ -94,7 +95,11 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/tem.html#lys_em.tem.TEM.beamDirection">beamDirection (lys_em.tem.TEM property)</a>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEMParameter.beamDirection">beamDirection (lys_em.tem.TEMParameter property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEMParameter.beamTilt">beamTilt() (lys_em.tem.TEMParameter method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -102,15 +107,15 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/kinematical.html#lys_em.kinematical.calcKinematicalDiffraction">calcKinematicalDiffraction() (in module lys_em.kinematical)</a>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.c">c (lys_em.space.FunctionSpace property)</a>
 </li>
-      <li><a href="lys_em_/multislice.html#lys_em.multislice.calcMultiSliceDiffraction">calcMultiSliceDiffraction() (in module lys_em.multislice)</a>
+      <li><a href="lys_em_/kinematical.html#lys_em.kinematical.calcKinematicalDiffraction">calcKinematicalDiffraction() (in module lys_em.kinematical)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/tem.html#lys_em.tem.TEM.chi">chi() (lys_em.tem.TEM method)</a>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.crystalPotential.CrystalPotential">CrystalPotential (class in lys_em.potentials.crystalPotential)</a>
 </li>
-      <li><a href="lys_em_/crystalPotential.html#lys_em.crystalPotential.CrystalPotential">CrystalPotential (class in lys_em.crystalPotential)</a>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEM.Cs">Cs (lys_em.tem.TEM property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -120,11 +125,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lys_em_/kinematical.html#lys_em.kinematical.debyeWallerFactors">debyeWallerFactors() (in module lys_em.kinematical)</a>
 </li>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEMParameter.defocus">defocus (lys_em.tem.TEMParameter property)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.diffraction">diffraction() (in module lys_em.multislice)</a>
+</li>
       <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.dV">dV (lys_em.space.FunctionSpace property)</a>
 </li>
-      <li><a href="lys_em_/crystalPotential.html#lys_em.crystalPotential.CrystalPotential.dz">dz (lys_em.crystalPotential.CrystalPotential property)</a>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.dz">dz (lys_em.space.FunctionSpace property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -134,11 +143,9 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lys_em_/kinematical.html#lys_em.kinematical.formFactors">formFactors() (in module lys_em.kinematical)</a>
 </li>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.fromCrystal">fromCrystal() (lys_em.space.FunctionSpace static method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.FT">FT() (lys_em.space.FunctionSpace method)</a>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.fromCrystal">fromCrystal() (lys_em.space.FunctionSpace static method)</a>
 </li>
       <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace">FunctionSpace (class in lys_em.space)</a>
 </li>
@@ -148,19 +155,31 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.getArray">getArray() (lys_em.space.FunctionSpace method)</a>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential">GeneralPotential (class in lys_em.potentials.generalPotential)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.getPropagationTerm">getPropagationTerm() (lys_em.space.FunctionSpace method)</a>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.getAberrationFunction">getAberrationFunction() (in module lys_em.multislice)</a>
 </li>
-  </ul></td>
-</tr></table>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.getChi">getChi() (in module lys_em.multislice)</a>
+</li>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.crystalPotential.CrystalPotential.getPhase">getPhase() (lys_em.potentials.crystalPotential.CrystalPotential method)</a>
 
-<h2 id="I">I</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
+      <ul>
+        <li><a href="lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential.getPhase">(lys_em.potentials.generalPotential.GeneralPotential method)</a>
+</li>
+        <li><a href="lys_em_/potential.html#lys_em.potentials.interface.PotentialInterface.getPhase">(lys_em.potentials.interface.PotentialInterface method)</a>
+</li>
+        <li><a href="lys_em_/potential.html#lys_em.potentials.magneticPotential.MagneticPotential.getPhase">(lys_em.potentials.magneticPotential.MagneticPotential method)</a>
+</li>
+      </ul></li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.IFT">IFT() (lys_em.space.FunctionSpace method)</a>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.getPropagationTerm">getPropagationTerm() (in module lys_em.multislice)</a>
+</li>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.crystalPotential.CrystalPotential.getSlicePotential">getSlicePotential() (lys_em.potentials.crystalPotential.CrystalPotential method)</a>
+</li>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.interface.PotentialInterface.getTransmissionFunction">getTransmissionFunction() (lys_em.potentials.interface.PotentialInterface method)</a>
+</li>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.getWaveFunction">getWaveFunction() (in module lys_em.multislice)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -168,7 +187,7 @@
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.k2">k2 (lys_em.space.FunctionSpace property)</a>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.k">k (lys_em.space.FunctionSpace property)</a>
 </li>
       <li><a href="lys_em_/tem.html#lys_em.tem.TEM.k_in">k_in (lys_em.tem.TEM property)</a>
 </li>
@@ -185,13 +204,6 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
-    lys_em.crystalPotential
-
-      <ul>
-        <li><a href="lys_em_/crystalPotential.html#module-lys_em.crystalPotential">module</a>
-</li>
-      </ul></li>
-      <li>
     lys_em.kinematical
 
       <ul>
@@ -205,8 +217,36 @@
         <li><a href="lys_em_/multislice.html#module-lys_em.multislice">module</a>
 </li>
       </ul></li>
+      <li>
+    lys_em.potentials.crystalPotential
+
+      <ul>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.crystalPotential">module</a>
+</li>
+      </ul></li>
+      <li>
+    lys_em.potentials.generalPotential
+
+      <ul>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.generalPotential">module</a>
+</li>
+      </ul></li>
+      <li>
+    lys_em.potentials.interface
+
+      <ul>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.interface">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    lys_em.potentials.magneticPotential
+
+      <ul>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.magneticPotential">module</a>
+</li>
+      </ul></li>
       <li>
     lys_em.scatteringFactor
 
@@ -234,7 +274,7 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lys_em_/multislice.html#lys_em.multislice.makePrecessionTheta">makePrecessionTheta() (in module lys_em.multislice)</a>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.magneticPotential.MagneticPotential">MagneticPotential (class in lys_em.potentials.magneticPotential)</a>
 </li>
       <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.mask">mask (lys_em.space.FunctionSpace property)</a>
 </li>
@@ -242,11 +282,17 @@
     module
 
       <ul>
-        <li><a href="lys_em_/crystalPotential.html#module-lys_em.crystalPotential">lys_em.crystalPotential</a>
-</li>
         <li><a href="lys_em_/kinematical.html#module-lys_em.kinematical">lys_em.kinematical</a>
 </li>
         <li><a href="lys_em_/multislice.html#module-lys_em.multislice">lys_em.multislice</a>
+</li>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.crystalPotential">lys_em.potentials.crystalPotential</a>
+</li>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.generalPotential">lys_em.potentials.generalPotential</a>
+</li>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.interface">lys_em.potentials.interface</a>
+</li>
+        <li><a href="lys_em_/potential.html#module-lys_em.potentials.magneticPotential">lys_em.potentials.magneticPotential</a>
 </li>
         <li><a href="lys_em_/scatteringFactor.html#module-lys_em.scatteringFactor">lys_em.scatteringFactor</a>
 </li>
@@ -256,11 +302,31 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/multislice.html#lys_em.multislice.multislice">multislice() (in module lys_em.multislice)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.N">N (lys_em.space.FunctionSpace property)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEM.params">params (lys_em.tem.TEM property)</a>
+</li>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEMParameter.position">position (lys_em.tem.TEMParameter property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.interface.PotentialInterface">PotentialInterface (class in lys_em.potentials.interface)</a>
+</li>
       <li><a href="lys_em_/scatteringFactor.html#lys_em.scatteringFactor.projectedPotential">projectedPotential() (in module lys_em.scatteringFactor)</a>
 </li>
   </ul></td>
@@ -270,6 +336,18 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lys_em_/tem.html#lys_em.tem.TEM.relativisticMass">relativisticMass (lys_em.tem.TEM property)</a>
+</li>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.crystalPotential.CrystalPotential.replace">replace() (lys_em.potentials.crystalPotential.CrystalPotential method)</a>
+
+      <ul>
+        <li><a href="lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential.replace">(lys_em.potentials.generalPotential.GeneralPotential method)</a>
+</li>
+        <li><a href="lys_em_/potential.html#lys_em.potentials.magneticPotential.MagneticPotential.replace">(lys_em.potentials.magneticPotential.MagneticPotential method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/space.html#lys_em.space.FunctionSpace.rvec">rvec (lys_em.space.FunctionSpace property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -281,6 +359,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/potential.html#lys_em.potentials.interface.PotentialInterface.space">space (lys_em.potentials.interface.PotentialInterface property)</a>
+</li>
       <li><a href="lys_em_/kinematical.html#lys_em.kinematical.structureFactors">structureFactors() (in module lys_em.kinematical)</a>
 </li>
   </ul></td>
@@ -290,6 +370,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lys_em_/tem.html#lys_em.tem.TEM">TEM (class in lys_em.tem)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lys_em_/tem.html#lys_em.tem.TEMParameter">TEMParameter (class in lys_em.tem)</a>
 </li>
   </ul></td>
 </tr></table>
