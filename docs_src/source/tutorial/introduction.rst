@@ -12,8 +12,10 @@ The library mainly relies on the following packages for computation:
 
 For simulations and analyses based on crystal structures, the following library is used:
 
-- lys_mat
+- `lys_mat <https://a-tock.github.io/lys_mat/index.html>`_
 
 To understand the features and capabilities of *lys_em*, it is recommended to follow the tutorials provided below.
 
--
+- :doc:`SAD`
+- :doc:`PED`
+- :doc:`StructureOptimization`
