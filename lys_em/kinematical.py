@@ -6,12 +6,12 @@ import jax
 import jax.numpy as jnp
 
 
-def safe_norm(x, axis=-1, eps=1e-12):
+def _safe_norm(x, axis=-1, eps=1e-12):
     return jnp.sqrt(jnp.sum(x * x, axis=axis) + eps)
 
 
 def _scatteringFactors(c, k):
-    k4p = safe_norm(k, axis=-1) / (4 * np.pi)
+    k4p = _safe_norm(k, axis=-1) / (4 * np.pi)
     Z = [at.Z for at in c.atoms]
     N = [at.Occupancy for at in c.atoms]
     F = {z: scatteringFactor(z, k4p) for z in np.unique(Z)}
@@ -101,12 +101,13 @@ def calcKinematicalDiffraction(crys, TEM, TEMParam, numOfCells, Nx=128, Ny=128):
     Args:
         crys (CrystalStructure): The crystal structure.
         TEM (TEM): The transmission electron microscope settings.
+        TEMParam (TEMParameter): The transmission electron microscope parameters.
         numOfCells (int): The number of unit cells in the z-direction.
         Nx (int, optional): Number of grid points along the x-direction. Default is 128.
         Ny (int, optional): Number of grid points along the y-direction. Default is 128.
 
     Returns:
-        array_like: The intensity of the kinematical diffraction pattern.
+        float: The kinematical diffraction pattern for the given crystal structure and TEM settings.
     """
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells)
     kx, ky = sp.kvec[:, :, 0], sp.kvec[:, :, 1]

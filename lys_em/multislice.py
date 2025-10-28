@@ -6,13 +6,20 @@ from jax.experimental.shard_map import shard_map
 
 def multislice(pot, tem, probe="TEM"):
     """
-    Caluclate multislice simulations for list of thetas.
-    The shape of returned array will be (Thetas, Nx, Ny).
-    """
+    Calculate the multislice simulation.
 
+    Args:
+        pot (CrystalPotential): The CrystalPotential object.
+        tem (TEM) : The TEM object.
+        probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
+            The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
+
+    Returns:
+        phi (numpy.ndarray) : The multislice simulation result.
+    """
     mesh = jax.make_mesh((len(jax.devices()), ), ('i'))
-    fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
-    ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2,-1)), mesh=mesh, in_specs=P("i",None,None), out_specs=P("i",None,None))
+    fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
+    ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
 
     sp = pot.space
     t_r = pot.getTransmissionFunction(tem)
@@ -25,10 +32,10 @@ def multislice(pot, tem, probe="TEM"):
             return ifft2(fft2(phi * V_r) * P_k), None
         phi, _ = jax.lax.scan(body, phi, pots)
         return phi
-    
+
     phi = _apply(phi, t_r, P_k)
 
-    if probe=="TEM":
+    if probe == "TEM":
         H = getAberrationFunction(sp, tem)  # shape (len(params), Nx, Ny)
         phi = ifft2(fft2(phi) * H * sp.mask)
 
@@ -51,16 +58,13 @@ def getPropagationTerm(sp, tem):
     The propagation term is calculated as exp(1j * k * dz).
 
     Args:
-        lamb (float): The wavelength of the electron beam in Angstrom.
-        theta_x (float, optional): The tilt angle of the incident beam along the x-axis in degree. Defaults to 0.
-        theta_y (float, optional): The tilt angle of the incident beam along the y-axis in degree. Defaults to 0.
+        sp (FunctionSpace): The function space object.
+        tem (TEM): The TEM object.
 
     Returns:
         numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
-        the propagation term at the respective grid point in reciprocal
-        space.
+        the propagation term at the respective grid point in reciprocal space.
     """
-
     @jax.vmap
     @jax.jit
     def _propagationTerm(theta):
@@ -73,14 +77,17 @@ def getPropagationTerm(sp, tem):
 
 def getWaveFunction(sp, tem, probe="TEM"):
     """
-    Generate a normalized 2D array representing the function space grid.
+    Calculate the wave function of the multislice simulation.
+
+    Args:
+        sp (FunctionSpace): The function space object.
+        tem (TEM) : The TEM object.
+        probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
+            The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
 
     Returns:
-        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
-        initialized to the value 1/(Nx*Ny), representing a uniform distribution
-        over the function space.
+        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is the wave function at the respective grid point in real space.
     """
-
     @jax.vmap
     @jax.jit
     def _shiftProbe(probe_func, pos):
@@ -90,12 +97,12 @@ def getWaveFunction(sp, tem, probe="TEM"):
     @jax.vmap
     @jax.jit
     def _probe(chi_n):
-        return jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, jnp.exp(-1j*chi_n), 0) # Nx, Ny
+        return jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, jnp.exp(-1j * chi_n), 0)  # Nx, Ny
 
     defocus = jnp.array([p.defocus for p in tem.params])
     chi = getChi(sp, tem)
-    if probe in ["TEM","STEM"]:
-        probe = _probe(chi(defocus)) # len(params), Nx, Ny
+    if probe in ["TEM", "STEM"]:
+        probe = _probe(chi(defocus))  # len(params), Nx, Ny
     else:
         probe = jax.vmap(lambda df: probe)(defocus)
 
@@ -104,12 +111,41 @@ def getWaveFunction(sp, tem, probe="TEM"):
 
 
 def getAberrationFunction(sp, tem):
+    """
+    Return the aberration function of the multislice simulation.
+
+    The aberration function is calculated from the chi function and the defocus values.
+    The chi function is calculated from the wave number k and the spherical
+    aberration coefficient Cs. The defocus values are given in Angstrom.
+
+    Args:
+        sp (FunctionSpace): The function space object.
+        tem (TEM) : The TEM object.
+
+    Returns:
+        numpy.ndarray: A 2D array of shape (len(params), Nx, Ny) where each element is the aberration function at the respective grid point in real space.
+    """
     chi = getChi(sp, tem)
     defocus = jnp.array([p.defocus for p in tem.params])
     return jnp.exp(1j * chi(defocus))
 
 
 def getChi(sp, tem):
+    """
+    Return the chi function of the multislice simulation.
+
+    The chi function is calculated from the wave number k and the spherical
+    aberration coefficient Cs. The wave number k is calculated from the function
+    space object sp and the wavelength lambda of the TEM object tem. The spherical
+    aberration coefficient Cs is given in millimeters.
+
+    Args:
+        sp (FunctionSpace): The function space object.
+        tem (TEM) : The TEM object.
+
+    Returns:
+        callable: A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.
+    """
     k = sp.k
     l = tem.wavelength
     Cs = tem.Cs
