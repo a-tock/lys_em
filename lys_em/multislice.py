@@ -84,18 +84,18 @@ def getPropagationTerm(sp, tem):
     return _propagationTerm(thetas)
 
 
-def getWaveFunction(sp, tem, probe="TEM"):
+def getWaveFunction(sp, tem, probe="TEM", index=None):
     """
     Calculate the wave function of the multislice simulation.
 
     Args:
         sp (FunctionSpace): The function space object.
         tem (TEM) : The TEM object.
-        probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
+        probe (str or array) : The probe type or the probe wave function.Probe type can be "TEM" or "STEM".
             The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
 
     Returns:
-        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is the wave function at the respective grid point in real space.
+        numpy.ndarray: A 3D array of shape (len(tem.params), Nx, Ny) where each element is the wave function at the respective grid point in real space.
     """
     @jax.vmap
     @jax.jit
@@ -108,14 +108,20 @@ def getWaveFunction(sp, tem, probe="TEM"):
     def _probe(chi_n):
         return jnp.where(jnp.linalg.norm(sp.kvec, axis=2) <= tem.k_max, jnp.exp(-1j * chi_n), 0)  # Nx, Ny
 
-    defocus = jnp.array([p.defocus for p in tem.params])
+    params = tem.params
+    if type(index) == int:
+        params = [params[index]]
+    elif type(index) == list:
+        params = [params[i] for i in index]
+
+    defocus = jnp.array([p.defocus for p in params])
     chi = getChi(sp, tem)
     if probe in ["TEM", "STEM"]:
         probe = _probe(chi(defocus))  # len(params), Nx, Ny
     else:
         probe = jax.vmap(lambda df: probe)(defocus)
 
-    pos = jnp.array([p.position for p in tem.params])
+    pos = jnp.array([p.position for p in params])
     return _shiftProbe(probe, pos)
 
 
