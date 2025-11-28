@@ -105,9 +105,20 @@ class TEMParameter:
         position (list or array-like, optional): The position of the electron beam. Default is [0, 0].
     """
 
-    def __init__(self, defocus=0, tilt=[0, 0], position=[0, 0]):
+    def __init__(self, defocus=0, tilt=None, position=None, tiltType="polar"):
         self._defocus = defocus
-        self._tilt = np.radians(tilt)
+        if tilt is None:
+            tilt = [0, 0]
+        if position is None:
+            position = [0, 0]
+        if tiltType == "polar":
+            self._tilt = np.radians(tilt)
+        elif tiltType == "cartesian":
+            theta_x = np.radians(tilt[0])
+            theta_y = np.radians(tilt[1])
+            theta = np.arccos(1 / np.sqrt(1 + np.tan(theta_x)**2 + np.tan(theta_y)**2))
+            phi = np.arctan2(np.tan(theta_y), np.tan(theta_x))
+            self._tilt = np.array([theta, phi])
         self._position = position
 
     @property
