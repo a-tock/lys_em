@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 from jax.experimental.shard_map import shard_map
+import copy
 
 
 def multislice(pot, tem, probe="TEM"):
@@ -17,14 +18,20 @@ def multislice(pot, tem, probe="TEM"):
     Returns:
         phi (numpy.ndarray) : The multislice simulation result.
     """
-    mesh = jax.make_mesh((len(jax.devices()), ), ('i'))
+    devices = len(jax.devices())
+    mesh = jax.make_mesh((devices, ), ('i'))
     fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
     ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
 
+    tem_aligned = copy.deepcopy(tem)
+    tem_aligned.params.extend([tem_aligned.params[0]] * ((devices - len(tem.params) % devices) % devices))
+
     sp = pot.space
-    t_r = pot.getTransmissionFunction(tem)
-    P_k = getPropagationTerm(sp, tem)  # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem, probe=probe)  # shape (len(params), Nx, Ny)
+    t_r = pot.getTransmissionFunction(tem_aligned)  # shape (ncells * division, Nx, Ny)
+    P_k = getPropagationTerm(sp, tem_aligned)  # shape (len(params), Nx, Ny)
+    phi = getWaveFunction(sp, tem_aligned, probe=probe)  # shape (len(params), modes, Nx, Ny)
+    if type(probe) != str and len(probe.shape) == 3:
+        P_k = jnp.expand_dims(P_k, axis=1)
 
     @jax.jit
     def _apply(phi, pots, P_k):
@@ -36,10 +43,12 @@ def multislice(pot, tem, probe="TEM"):
     phi = _apply(phi, t_r, P_k)
 
     if probe == "TEM":
-        H = getAberrationFunction(sp, tem)  # shape (len(params), Nx, Ny)
+        H = getAberrationFunction(sp, tem_aligned)  # shape (len(params), Nx, Ny)
         phi = ifft2(fft2(phi) * H * sp.mask)
 
-    return jnp.squeeze(phi)
+    phi = phi[0:len(tem.params)]
+
+    return phi[0] if phi.shape[0] == 1 else phi
 
 
 def getPropagationTerm(sp, tem):
