@@ -3,8 +3,10 @@ import itertools
 import numpy as np
 import jax
 import jax.numpy as jnp
+import itertools
 import scipy.optimize as optimize
-from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice
+from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice, GeneralPotential
+from .multislice import getWaveFunction
 
 
 def calcSADiffraction(V, crys, numOfCells, Nx=128, Ny=128, division="Auto", tilt=[0, 0]):
@@ -101,3 +103,21 @@ def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, divisio
 
 def diffraction(data):
     return jnp.abs(jnp.fft.fft2(data))**2
+
+
+def center_of_mass_along_axes(data, axes=(1, 2)):
+    data = np.asarray(data, float)
+    ndim = data.ndim
+    axes = tuple(sorted(axes))
+
+    total = np.sum(data, axis=axes, keepdims=False)
+    total[total == 0] = np.nan
+
+    coms = []
+    for ax in axes:
+        coords = np.arange(data.shape[ax], dtype=float)
+        num = np.sum(data * np.expand_dims(coords, tuple(i for i in range(ndim) if i != ax)), axis=axes)
+        com = num / total
+        coms.append(com)
+
+    return np.stack(coms, axis=-1)
