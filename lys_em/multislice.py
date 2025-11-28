@@ -146,13 +146,13 @@ def getChi(sp, tem):
     Returns:
         callable: A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.
     """
-    k = sp.k
-    l = tem.wavelength
-    Cs = tem.Cs
+    k = sp.k / 2 / jnp.pi  # rad/A
+    l = tem.wavelength  # A
+    Cs = tem.Cs  # A
 
     @jax.vmap
     @jax.jit
-    def _chi(df):
+    def _chi(df):  # df : A
         return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - df * ((l * k)**2) / 2)
 
     return _chi
