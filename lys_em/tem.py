@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from .consts import m, e, hbar, kB, h, c
 
 
@@ -10,7 +11,7 @@ class TEM(object):
         acc (float): The acceleration voltage in V.
         convergence (float, optional): The convergence angle of the incident electron beam in radians. Default is 0.
         divergence (float, optional): The divergence angle of the electron beam in radians. Default is np.inf.
-        Cs (float, optional): The spherical aberration coefficient in millimeters. Default is 0.
+        Cs (float, optional): The spherical aberration coefficient in angstrom. Default is 0.
         params (list, optional): A list of TEMParameter objects. Default is None.
     """
 
@@ -75,6 +76,21 @@ class TEM(object):
             list: List of TEMParameter objects
         '''
         return self._parameters
+
+    @params.setter
+    def params(self, parameters):
+        if isinstance(parameters, TEMParameter):
+            parameters = [parameters]
+        self._parameters = parameters
+
+    def devide_params(self, n):
+        n = int(np.min([n, len(self.params)]))
+        tems = [copy.deepcopy(self) for _ in range(n)]
+        chunks = np.array_split(np.arange(len(self._parameters)), n)
+        for i, chunk in enumerate(chunks):
+            tems[i]._parameters = [copy.deepcopy(self._parameters[j]) for j in chunk]  # [self._parameters[j] for j in chunk] #[self._parameters[j].copy() for j in chunk]
+
+        return tems, chunks
 
 
 class TEMParameter:
