@@ -23,8 +23,7 @@ def multislice(pot, tem, probe="TEM"):
     fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
     ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=P("i", None, None), out_specs=P("i", None, None))
 
-    tem_aligned = copy.deepcopy(tem)
-    tem_aligned.params.extend([tem_aligned.params[0]] * ((devices - len(tem.params) % devices) % devices))
+    tem_aligned = tem.replace(params=tem.params + [tem.params[0]] * ((devices - len(tem.params) % devices) % devices))
 
     sp = pot.space
     t_r = pot.getTransmissionFunction(tem_aligned)  # shape (ncells * division, Nx, Ny)

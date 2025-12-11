@@ -77,20 +77,27 @@ class TEM(object):
         '''
         return self._parameters
 
-    @params.setter
-    def params(self, parameters):
-        if isinstance(parameters, TEMParameter):
-            parameters = [parameters]
-        self._parameters = parameters
-
     def devide_params(self, n):
         n = int(np.min([n, len(self.params)]))
-        tems = [copy.deepcopy(self) for _ in range(n)]
+        tems = []
         chunks = np.array_split(np.arange(len(self._parameters)), n)
-        for i, chunk in enumerate(chunks):
-            tems[i]._parameters = [copy.deepcopy(self._parameters[j]) for j in chunk]  # [self._parameters[j] for j in chunk] #[self._parameters[j].copy() for j in chunk]
+        for chunk in chunks:
+            tems.append(self.replace(params=[self._parameters[j] for j in chunk]))
 
         return tems, chunks
+
+    def replace(self, acc=None, convergence=None, divergence=None, Cs=None, params=None):
+        if acc is None:
+            acc = self.__acc
+        if convergence is None:
+            convergence = self._convergence
+        if divergence is None:
+            divergence = self._divergence
+        if Cs is None:
+            Cs = self._Cs
+        if params is None:
+            params = self._parameters
+        return TEM(self.__acc, convergence=self._convergence, divergence=self._divergence, Cs=self._Cs, params=params)
 
 
 class TEMParameter:
@@ -114,11 +121,7 @@ class TEMParameter:
         if tiltType == "polar":
             self._tilt = np.radians(tilt)
         elif tiltType == "cartesian":
-            theta_x = np.radians(tilt[0])
-            theta_y = np.radians(tilt[1])
-            theta = np.arccos(1 / np.sqrt(1 + np.tan(theta_x)**2 + np.tan(theta_y)**2))
-            phi = np.arctan2(np.tan(theta_y), np.tan(theta_x))
-            self._tilt = np.array([theta, phi])
+            self._tilt = self._cartesianToPolar(tilt)
         self._position = position
 
     @property
@@ -166,3 +169,19 @@ class TEMParameter:
         elif type == "cartesian":
             x, y, z = self.beamDirection
             return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])
+
+    def replace(self, defocus=None, tilt=None, position=None, tiltType="polar"):
+        if defocus is None:
+            defocus = self._defocus
+        if tilt is None:
+            tilt = np.degrees(self._tilt)
+        if position is None:
+            position = self._position
+        return TEMParameter(defocus=defocus, tilt=tilt, position=position, tiltType=tiltType)
+
+    def _cartesianToPolar(self, tilt):
+        theta_x = np.radians(tilt[0])
+        theta_y = np.radians(tilt[1])
+        theta = np.arccos(1 / np.sqrt(1 + np.tan(theta_x)**2 + np.tan(theta_y)**2))
+        phi = np.arctan2(np.tan(theta_y), np.tan(theta_x))
+        return np.array([theta, phi])
