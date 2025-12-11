@@ -100,7 +100,7 @@ def getWaveFunction(sp, tem, probe="TEM", index=None):
     @jax.jit
     def _shiftProbe(probe_func, pos):
         wave = jnp.fft.ifft2(probe_func * jnp.exp(1j * sp.kvec.dot(pos)))
-        return wave / jnp.sum(jnp.abs(wave)**2)
+        return wave / jnp.sqrt(jnp.sum(jnp.abs(wave)**2))
 
     @jax.vmap
     @jax.jit
@@ -118,7 +118,7 @@ def getWaveFunction(sp, tem, probe="TEM", index=None):
     if probe in ["TEM", "STEM"]:
         probe = _probe(chi(defocus))  # len(params), Nx, Ny
     else:
-        probe = jax.vmap(lambda df: probe)(defocus)
+        probe = jax.vmap(lambda df: jnp.fft.fft2(probe))(defocus)
 
     pos = jnp.array([p.position for p in params])
     return _shiftProbe(probe, pos)
