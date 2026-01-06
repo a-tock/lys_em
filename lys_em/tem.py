@@ -1,8 +1,11 @@
 import numpy as np
+import jax.numpy as jnp
+from jax.tree_util import register_pytree_node_class
 import copy
 from .consts import m, e, hbar, kB, h, c
 
 
+@register_pytree_node_class
 class TEM(object):
     """
     TEM parameters used for simulations.
@@ -25,6 +28,7 @@ class TEM(object):
         if isinstance(params, TEMParameter):
             params = [params]
         self._parameters = params
+        self._cached_arrays = None
 
     @property
     def wavelength(self):
@@ -43,7 +47,7 @@ class TEM(object):
     @property
     def k_max(self):
         """
-        Return a lateral wavenumber of most-tilted incident electron determined by convergence angle. 
+        Return a lateral wavenumber of most-tilted incident electron determined by convergence angle.
         """
         return 2 * np.pi * self._convergence / self.wavelength
 
@@ -97,9 +101,115 @@ class TEM(object):
             Cs = self._Cs
         if params is None:
             params = self._parameters
-        return TEM(self.__acc, convergence=self._convergence, divergence=self._divergence, Cs=self._Cs, params=params)
+        return TEM(acc, convergence=convergence, divergence=divergence, Cs=Cs, params=params)
+
+    def replace(self, acc=None, convergence=None, divergence=None, Cs=None, params=None):
+        if acc is None:
+            acc = self.__acc
+        if convergence is None:
+            convergence = self._convergence
+        if divergence is None:
+            divergence = self._divergence
+        if Cs is None:
+            Cs = self._Cs
+        if params is None:
+            params = self._parameters
+
+        new_obj = TEM(acc, convergence=convergence, divergence=divergence, Cs=Cs, params=params)
+
+        # params がリストではなく、単一の TEMParameter で、かつ内部が配列（バッチ）の場合
+        if isinstance(params, TEMParameter):
+            if hasattr(params._defocus, "ndim") and params._defocus.ndim >= 1:
+                new_obj._cached_arrays = {
+                    "tilt": params._tilt,
+                    "defocus": params._defocus,
+                    "position": params._position
+                }
+                # multislice内の len(tem.params) 対策として、
+                # 正しい長さを持つダミーリストをセットしておく
+                batch_size = params._defocus.shape[0]
+                new_obj._parameters = [None] * batch_size
+
+        return new_obj
+
+    @property
+    def params_array(self):
+        if self._cached_arrays is not None:
+            return self._cached_arrays
+
+        extracted = [(p._tilt, p.defocus, p.position) for p in self._parameters]
+        tilts_raw, defocuses_raw, positions_raw = zip(*extracted)
+
+        tilts = jnp.array(tilts_raw)
+        defocuses = jnp.array(defocuses_raw)
+        positions = jnp.array(positions_raw)
+
+        self._cached_arrays = {"tilt": tilts, "defocus": defocuses, "position": positions}
+        return self._cached_arrays
+
+    @property
+    def num_params(self):
+        return self.params_array["defocus"].shape[0]
+
+    def align_to_devices(self, devices):
+        p = self.params_array
+        n_params = p["defocus"].shape[0]
+
+        remainder = n_params % devices
+        if remainder == 0:
+            return self
+
+        pad_size = devices - remainder
+
+        def _pad(arr):
+            last_val = jnp.take(arr, -1, axis=0)
+            padding = jnp.stack([last_val] * pad_size)
+            return jnp.concatenate([arr, padding], axis=0)
+
+        new_cached = {"tilt": _pad(p["tilt"]), "defocus": _pad(p["defocus"]), "position": _pad(p["position"])}
+
+        obj = self.replace(params=self.params + [self.params[0]] * pad_size)
+        obj._cached_arrays = new_cached
+        return obj
+
+    def tree_flatten(self):
+        if self._cached_arrays is None:
+            extracted = [(p._tilt, p.defocus, p.position) for p in self._parameters]
+            tilts_raw, defocuses_raw, positions_raw = zip(*extracted)
+
+            tilts = jnp.array(tilts_raw)
+            defocuses = jnp.array(defocuses_raw)
+            positions = jnp.array(positions_raw)
+        else:
+            tilts = self._cached_arrays["tilt"]
+            defocuses = self._cached_arrays["defocus"]
+            positions = self._cached_arrays["position"]
+
+        children = (tilts, defocuses, positions, self.__acc, self._Cs, self._convergence, self._divergence)
+        aux_data = {}  # 全て数値なので空
+        return (children, aux_data)
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, children):
+        tilts, defocuses, positions, acc, Cs, convergence, divergence = children
+
+        obj = cls.__new__(cls)
+        obj.__acc = acc
+        obj._Cs = Cs
+        obj._convergence = convergence
+        obj._divergence = divergence
+
+        # 配列をそのまま保持（List[Param]は作らない）
+        obj._cached_arrays = {
+            "tilt": tilts,
+            "defocus": defocuses,
+            "position": positions
+        }
+        obj._parameters = None
+        return obj
 
 
+@register_pytree_node_class
 class TEMParameter:
     """
     TEMParameter has properties that are parameters that can usually be changed during TEM measurement.
@@ -113,16 +223,17 @@ class TEMParameter:
     """
 
     def __init__(self, defocus=0, tilt=None, position=None, tiltType="polar"):
-        self._defocus = defocus
+        self._defocus = jnp.array(defocus, dtype=jnp.float32)
         if tilt is None:
             tilt = [0, 0]
         if position is None:
             position = [0, 0]
+        tilt = jnp.array(tilt, dtype=jnp.float32)
         if tiltType == "polar":
-            self._tilt = np.radians(tilt)
+            self._tilt = jnp.radians(tilt)
         elif tiltType == "cartesian":
             self._tilt = self._cartesianToPolar(tilt)
-        self._position = position
+        self._position = jnp.array(position, dtype=jnp.float32)
 
     @property
     def beamDirection(self):
@@ -132,7 +243,7 @@ class TEMParameter:
         Returns:
             array: The direction vector with shape (3,).
         """
-        return np.array([np.sin(self._tilt[0]) * np.cos(self._tilt[1]), np.sin(self._tilt[0]) * np.sin(self._tilt[1]), -np.cos(self._tilt[0])])
+        return jnp.array([jnp.sin(self._tilt[0]) * jnp.cos(self._tilt[1]), jnp.sin(self._tilt[0]) * jnp.sin(self._tilt[1]), -jnp.cos(self._tilt[0])])
 
     @property
     def position(self):
@@ -142,7 +253,7 @@ class TEMParameter:
         Returns:
             array: The position of the electron beam with shape (2,).
         """
-        return np.array(self._position)
+        return self._position
 
     @property
     def defocus(self):
@@ -165,23 +276,63 @@ class TEMParameter:
             array: The tilt angles with shape (2,).
         """
         if type == "polar":
-            return np.degrees(self._tilt)
+            return jnp.degrees(self._tilt)
         elif type == "cartesian":
             x, y, z = self.beamDirection
-            return np.degrees([np.arctan2(x, -z), np.arctan2(y, -z)])
+            return jnp.degrees(jnp.array([jnp.arctan2(x, -z), jnp.arctan2(y, -z)]))
 
     def replace(self, defocus=None, tilt=None, position=None, tiltType="polar"):
         if defocus is None:
             defocus = self._defocus
         if tilt is None:
-            tilt = np.degrees(self._tilt)
+            tilt = jnp.degrees(self._tilt)
         if position is None:
             position = self._position
         return TEMParameter(defocus=defocus, tilt=tilt, position=position, tiltType=tiltType)
 
     def _cartesianToPolar(self, tilt):
-        theta_x = np.radians(tilt[0])
-        theta_y = np.radians(tilt[1])
-        theta = np.arccos(1 / np.sqrt(1 + np.tan(theta_x)**2 + np.tan(theta_y)**2))
-        phi = np.arctan2(np.tan(theta_y), np.tan(theta_x))
-        return np.array([theta, phi])
+        theta_x = jnp.radians(tilt[0])
+        theta_y = jnp.radians(tilt[1])
+        theta = jnp.arccos(1 / jnp.sqrt(1 + jnp.tan(theta_x)**2 + jnp.tan(theta_y)**2))
+        phi = jnp.arctan2(jnp.tan(theta_y), jnp.tan(theta_x))
+        return jnp.array([theta, phi])
+
+    def split(self):
+        n = max(len(jnp.atleast_1d(self._defocus)),
+                len(jnp.atleast_1d(self._tilt[:, 0])),
+                len(jnp.atleast_1d(self._tilt[:, 1])),
+                len(jnp.atleast_1d(self._position[:, 0])),
+                len(jnp.atleast_1d(self._position[:, 1])))
+
+        defocuses = jnp.broadcast_to(jnp.atleast_1d(self._defocus), (n,))
+        tilts_0 = jnp.broadcast_to(jnp.atleast_1d(self._tilt[:, 0]), (n,))
+        tilts_1 = jnp.broadcast_to(jnp.atleast_1d(self._tilt[:, 1]), (n,))
+        positions_0 = jnp.broadcast_to(jnp.atleast_1d(self._position[:, 0]), (n,))
+        positions_1 = jnp.broadcast_to(jnp.atleast_1d(self._position[:, 1]), (n,))
+
+        params = []
+        for i in range(n):
+            new_param = TEMParameter(
+                defocus=defocuses[i],
+                tilt=[jnp.degrees(tilts_0[i]), jnp.degrees(tilts_1[i])],
+                position=[positions_0[i], positions_1[i]],
+                tiltType="polar"
+            )
+            params.append(new_param)
+
+        return params
+
+    def tree_flatten(self):
+        children = (self._defocus, self._tilt, self._position)
+        aux_data = ()  # 全て数値なので空
+        return (children, aux_data)
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, children):
+        defocus, tilt, position = children
+
+        obj = cls.__new__(cls)
+        obj._defocus = defocus
+        obj._tilt = tilt
+        obj._position = position
+        return obj
