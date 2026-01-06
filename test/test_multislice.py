@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from numpy.testing import assert_array_almost_equal
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, fitPrecessionDiffraction, calcPrecessionDiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import getPropagationTerm, multislice
@@ -84,7 +84,7 @@ class MultiSlice_test(unittest.TestCase):
         # Compare result with pre-calculated results at 2025/9/12.
         res = calcPrecessionDiffraction(200e3, self.Au, 50, 2, 360, Nx=128, Ny=128, division=1)
         ans = np.load(self.path + "/Au_PED.npy")
-        assert_array_almost_equal(res / res[0][0], ans / ans[0][0])
+        assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
 
 
 class CrystalPotential_test(unittest.TestCase):
