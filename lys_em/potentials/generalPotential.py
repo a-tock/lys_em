@@ -21,7 +21,7 @@ class GeneralPotential(PotentialInterface):
         if self._pot is not None:
             return self._pot
         else:
-            return self._transFunc
+            return jnp.unwrap(jnp.unwrap(jnp.angle(self._transFunc), axis=-2), axis=-1)
 
     def getTransmissionFunction(self, beam):
         if self._transFunc is not None:
