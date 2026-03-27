@@ -1,6 +1,10 @@
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
+from jax.sharding import NamedSharding
+from jax._src.mesh import thread_resources
+import contextlib
+from jax.lax import with_sharding_constraint
 from jax.experimental.shard_map import shard_map
 from jax.ad_checkpoint import checkpoint
 
@@ -19,22 +23,38 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
         phi (numpy.ndarray) : The multislice simulation result.
     """
 
-    # if len(tem.params) == 1:
-    if tem.num_params == 1:
-        ffts = (jnp.fft.fft2, jnp.fft.ifft2)
-        tem_aligned = tem
-    else:
-        ffts = get_sharded_fft_operators(use_probemode=not isinstance(probe, str) and probe.ndim > 2)
-        tem_aligned = tem.align_to_devices(len(jax.devices()))
+    num_dev = len(jax.devices())
+    print("jax_devices:", num_dev)
+    use_parallel = tem.num_params > 1 and num_dev > 1
 
-    fft2, ifft2 = ffts
-
+    tem_aligned = tem.align_to_devices(num_dev) if use_parallel else tem
     sp = pot.space
-    t_r = pot.getTransmissionFunction(tem_aligned)  # shape (ncells * division, Nx, Ny)
-    P_k = getPropagationTerm(sp, tem_aligned)  # shape (len(params), Nx, Ny)
-    phi = getWaveFunction(sp, tem_aligned, probe=probe)  # shape (len(params), modes, Nx, Ny)
+    t_r = pot.getTransmissionFunction(tem_aligned)
+    P_k = getPropagationTerm(sp, tem_aligned)
+    phi = getWaveFunction(sp, tem_aligned, probe=probe)
+
     if phi.ndim == 4 and P_k.ndim == 3:
         P_k = jnp.expand_dims(P_k, axis=1)
+
+    if use_parallel:
+        mesh = jax.sharding.Mesh(jax.devices(), ('i',))
+        use_probemode = not isinstance(probe, str) and probe.ndim > 2
+        param_spec = P("i", None, None, None) if use_probemode else P("i", None, None)
+        repl_spec = P(*(None,) * t_r.ndim)
+
+        replicated = NamedSharding(mesh, P(*(None,) * phi.ndim))
+
+        sharding_dist = NamedSharding(mesh, param_spec)
+
+        phi = with_sharding_constraint(phi, sharding_dist)
+        t_r = with_sharding_constraint(t_r, NamedSharding(mesh, repl_spec))
+        P_k = with_sharding_constraint(P_k, sharding_dist)
+
+        fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=param_spec, out_specs=param_spec)
+        ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=param_spec, out_specs=param_spec)
+    else:
+        fft2 = jnp.fft.fft2
+        ifft2 = jnp.fft.ifft2
 
     return_depth_jax = jnp.array(returnDepth, dtype=jnp.bool_)
 
@@ -55,25 +75,18 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
         H = getAberrationFunction(sp, tem_aligned)  # shape (len(params), Nx, Ny)
         if H.ndim < phi.ndim:
             H = jnp.expand_dims(H, axis=1)
-        phi = ifft2(fft2(phi) * H * sp.mask)
+        phi_final = jnp.fft.ifft2(jnp.fft.fft2(phi_final) * H * sp.mask)
 
         if returnDepth:
-            phis_all = jax.vmap(lambda p: ifft2(fft2(p) * H * sp.mask))(phis_all)
+            phis_all = jax.vmap(lambda p: jnp.fft.ifft2(jnp.fft.fft2(p) * H * sp.mask))(phis_all)
 
-    # if returnDepth:
-    #     res = jnp.swapaxes(phis_all[:, 0:len(tem.params)], 0, 1)
-    # else:
-    #     res = phi_final[0:len(tem.params)]
-    if returnDepth:
-        res = jnp.swapaxes(phis_all[:, 0:tem.num_params], 0, 1)
-    else:
-        res = phi_final[0:tem.num_params]
+    if use_parallel:
+        phi_final = with_sharding_constraint(phi_final, replicated)
+        if returnDepth:
+            phis_all = with_sharding_constraint(phis_all, replicated)
 
-    if tem.num_params == 1:
-        # if len(tem.params) == 1:
-        res = res[0]
-
-    return res
+    res = jnp.swapaxes(phis_all[:, :tem.num_params], 0, 1) if returnDepth else phi_final[:tem.num_params]
+    return res[0] if tem.num_params == 1 else res
 
 
 def getPropagationTerm(sp, tem):
@@ -104,12 +117,10 @@ def getPropagationTerm(sp, tem):
 
     k2_term = -1j * tem.wavelength * sp.k**2 / (4 * jnp.pi)
 
-    # @jax.vmap
     def _propagationTerm(theta):
         tilt = 1j * jnp.sum(kvec * jnp.tan(theta), axis=-1) + k2_term
         return jnp.exp(dz * tilt) * mask
 
-    # @jax.vmap
     def _cartesianBeamTilt(t):
         return jnp.stack([t[0] * jnp.cos(t[1]), t[0] * jnp.sin(t[1])])
 
@@ -117,9 +128,6 @@ def getPropagationTerm(sp, tem):
         theta = _cartesianBeamTilt(t)
         return _propagationTerm(theta)
 
-    # tilt = tem.params_array["tilt"]
-    # return jax.vmap(_single_tilt_process, in_axes=0)(jnp.deg2rad(tilt))
-    # return _propagationTerm(_cartesianBeamTilt(jnp.deg2rad(tilt)))
     return jax.vmap(_single_tilt_process, in_axes=0)(jnp.deg2rad(jnp.array([p.beamTilt() for p in tem.params])))
 
 
@@ -145,33 +153,18 @@ def getWaveFunction(sp, tem, probe="TEM", index=None):
         wave = jnp.fft.ifft2(probe_func * jnp.exp(1j * kvec.dot(pos)))
         return wave / jnp.sqrt(jnp.sum(jnp.abs(wave)**2))
 
-    @jax.vmap
-    def _probe(chi_n):
-        return _mask(jnp.exp(-1j * chi_n))
-        # return jnp.where(jnp.linalg.norm(kvec, axis=2) <= k_max, jnp.exp(-1j * chi_n), 0j)  # Nx, Ny
-
     def _mask(arr):
         return jnp.where(k_norm <= k_max, arr, 0j)
 
-    # params = tem.params
-    # if type(index) == int:
-    #     params = [params[index]]
-    # elif type(index) in (list, tuple, jnp.ndarray):
-    #     params = [params[i] for i in index]
-
-    # defocus = tem.params_array["defocus"]
-    # positions = tem.params_array["position"]
     defocus, positions = map(jnp.array, zip(*[(p.defocus, p.position) for p in tem.params]))
 
     chi = getChi(sp, tem)
 
     if type(probe) is str and probe in ["TEM", "STEM"]:
-        # probe = _probe(jax.vmap(getChi, in_axes=(None, None, 0))(sp, tem, defocus))
-        # probe = _probe(chi(defocus))
         probe = jax.vmap(_mask)(jnp.exp(-1j * chi(defocus)))
     else:
-        # probe = jax.vmap(_mask)(jax.vmap(lambda df: jnp.fft.fft2(probe))(defocus))
-        probe = jax.vmap(lambda df: jnp.fft.fft2(probe))(defocus)
+        probe = jax.vmap(_mask)(jnp.fft.fft2(probe)*jnp.exp(-1j * chi(defocus)))
+        # probe = jax.vmap(lambda df: jnp.fft.fft2(probe))(defocus)
 
     return _shiftProbe(probe, positions)
 
@@ -193,9 +186,6 @@ def getAberrationFunction(sp, tem):
     """
     chi = getChi(sp, tem)
     defocus = jnp.array([p.defocus for p in tem.params])
-    # defocus = tem.params_array["defocus"]
-
-    # return jnp.exp(1j * jax.vmap(getChi, in_axes=(None, None, 0))(sp, tem, defocus))
     return jnp.exp(1j * chi(defocus))
 
 
@@ -224,41 +214,3 @@ def getChi(sp, tem):
         return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - df * ((l * k)**2) / 2)
 
     return _chi
-
-# def getChi(sp, tem, defocus):
-#     """
-#     Return the chi function of the multislice simulation.
-
-#     The chi function is calculated from the wave number k and the spherical
-#     aberration coefficient Cs. The wave number k is calculated from the function
-#     space object sp and the wavelength lambda of the TEM object tem. The spherical
-#     aberration coefficient Cs is given in millimeters.
-
-#     Args:
-#         sp (FunctionSpace): The function space object.
-#         tem (TEM) : The TEM object.
-
-#     Returns:
-#         callable: A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.
-#     """
-#     k = sp.k / 2 / jnp.pi  # rad/A
-#     l = tem.wavelength  # A
-#     Cs = tem.Cs  # A
-
-#     # @jax.vmap
-#     # def _chi(df):  # df : A
-#     return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - defocus * ((l * k)**2) / 2)
-
-#     # return _chi
-
-
-def get_sharded_fft_operators(use_probemode=False):
-    devices = len(jax.devices())
-    mesh = jax.make_mesh((devices, ), ('i'))
-    # spec = P("i")
-    spec = P("i", None, None, None) if use_probemode else P("i", None, None)
-
-    fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=spec, out_specs=spec)
-    ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=spec, out_specs=spec)
-
-    return fft2, ifft2
