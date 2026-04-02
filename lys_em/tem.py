@@ -101,19 +101,6 @@ class TEM(object):
             Cs = self._Cs
         if params is None:
             params = self._parameters
-        return TEM(acc, convergence=convergence, divergence=divergence, Cs=Cs, params=params)
-
-    def replace(self, acc=None, convergence=None, divergence=None, Cs=None, params=None):
-        if acc is None:
-            acc = self.__acc
-        if convergence is None:
-            convergence = self._convergence
-        if divergence is None:
-            divergence = self._divergence
-        if Cs is None:
-            Cs = self._Cs
-        if params is None:
-            params = self._parameters
 
         new_obj = TEM(acc, convergence=convergence, divergence=divergence, Cs=Cs, params=params)
 
