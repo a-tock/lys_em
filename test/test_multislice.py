@@ -1,10 +1,11 @@
 import unittest
 import numpy as np
+import jax
 import jax.numpy as jnp
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 from lys_mat import CrystalStructure, Atom
-from lys_em import TEM, TEMParameter, FunctionSpace, calcSADiffraction, calcPrecessionDiffraction
+from lys_em import TEM, TEMParameter, FunctionSpace  # , calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import getPropagationTerm, multislice
@@ -62,7 +63,6 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace.fromCrystal(TaTe2, Nx=512, Ny=256, ncells=90)
         pot = CrystalPotential(sp, TaTe2)
         tem = TEM(0.75e6, params=TEMParameter(tilt=[-0.80437, 0]))
-        res = multislice(pot, tem)
         res = diffraction(multislice(pot, tem))
 #        res = calcSADiffraction(0.75e6, TaTe2, 90, Nx=512, Ny=256, tilt=[-0.80437, 0])
         res = jnp.sqrt(res)[:13, 0]
@@ -75,14 +75,25 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_nonorthogonal(self):
         # Relative error of intensity of a specific index in orthogonal and non-orthogonal systems
-        calc_ortho = calcSADiffraction(200e3, self.VTe2_ortho, 50, Nx=216, Ny=216, division=1)
-        calc_trigonal = calcSADiffraction(200e3, self.VTe2_trigonal, 50, Nx=216, Ny=216, division=1)
+        tem = TEM(200e3)
+
+        sp_ortho = FunctionSpace.fromCrystal(self.VTe2_ortho, Nx=216, Ny=216, ncells=50, division=1)
+        pot_ortho = CrystalPotential(sp_ortho, self.VTe2_ortho)
+        calc_ortho = diffraction(multislice(pot_ortho, tem))
+
+        sp_trigonal = FunctionSpace.fromCrystal(self.VTe2_trigonal, Nx=216, Ny=216, ncells=50, division=1)
+        pot_trigonal = CrystalPotential(sp_trigonal, self.VTe2_trigonal)
+        calc_trigonal = diffraction(multislice(pot_trigonal, tem))
+
         relative_error = np.abs(calc_ortho[1, 1] - calc_trigonal[1, 0]) / np.abs(calc_ortho[1, 1])
         self.assertTrue(np.all(relative_error < 1e-4))
 
     def test_PED(self):
         # Compare result with pre-calculated results at 2025/9/12.
-        res = calcPrecessionDiffraction(200e3, self.Au, 50, 2, 360, Nx=128, Ny=128, division=1)
+        sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=50, division=1)
+        pot = CrystalPotential(sp, self.Au)
+        tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 360)])
+        res = diffraction(multislice(pot, tem)).sum(axis=0)
         ans = np.load(self.path + "/Au_PED.npy")
         assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
 
@@ -108,9 +119,9 @@ class CrystalPotential_test(unittest.TestCase):
         r = np.linspace(0, self.Au_single.a, N, endpoint=False)
         sf = projectedPotential("Au", r)
 
-        self.assertAlmostEqual(V_r[0][0], sf[0], places=5)
-        self.assertAlmostEqual(V_r[0][1], sf[1], places=5)
-        self.assertAlmostEqual(V_r[0][2], sf[2], places=5)
+        assert_allclose(V_r[0][0], sf[0])
+        assert_allclose(V_r[0][1], sf[1])
+        assert_allclose(V_r[0][2], sf[2])
 
         # check potential calculation
         sp = FunctionSpace.fromCrystal(self.Au, 10, 10, 1, division=1)
