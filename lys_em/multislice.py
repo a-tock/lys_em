@@ -24,7 +24,6 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
     """
 
     num_dev = len(jax.devices())
-    print("jax_devices:", num_dev)
     use_parallel = tem.num_params > 1 and num_dev > 1
 
     tem_aligned = tem.align_to_devices(num_dev) if use_parallel else tem
@@ -35,6 +34,13 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
 
     if phi.ndim == 4 and P_k.ndim == 3:
         P_k = jnp.expand_dims(P_k, axis=1)
+
+    if probe == "TEM":
+        H = getAberrationFunction(sp, tem_aligned)  # shape (len(params), Nx, Ny)
+        if H.ndim < phi.ndim:
+            H = jnp.expand_dims(H, axis=1)
+    else:
+        H = jnp.zeros((num_dev, 1, 1), dtype=jnp.complex64)
 
     if use_parallel:
         mesh = jax.sharding.Mesh(jax.devices(), ('i',))
@@ -49,6 +55,7 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
         phi = with_sharding_constraint(phi, sharding_dist)
         t_r = with_sharding_constraint(t_r, NamedSharding(mesh, repl_spec))
         P_k = with_sharding_constraint(P_k, sharding_dist)
+        H = with_sharding_constraint(H, sharding_dist)
 
         fft2 = shard_map(lambda u: jnp.fft.fft2(u, axes=(-2, -1)), mesh=mesh, in_specs=param_spec, out_specs=param_spec)
         ifft2 = shard_map(lambda u: jnp.fft.ifft2(u, axes=(-2, -1)), mesh=mesh, in_specs=param_spec, out_specs=param_spec)
@@ -56,29 +63,44 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
         fft2 = jnp.fft.fft2
         ifft2 = jnp.fft.ifft2
 
-    return_depth_jax = jnp.array(returnDepth, dtype=jnp.bool_)
-
     @jax.jit
-    def core_func(phi, t_r, P_k):
-        def body(phi_prev, V_r):
+    def core_func(phi, t_r, P_k, H, mask):
+
+        def body_with_depth(phi_prev, V_r):
             phi_next = ifft2(fft2(phi_prev * V_r) * P_k)
-            return phi_next, jnp.where(return_depth_jax, phi_next, jnp.zeros_like(phi_next))
+            return phi_next, phi_next
 
-        scan_body = checkpoint(body) if use_checkpoint else body
+        def body_no_depth(phi_prev, V_r):
+            phi_next = ifft2(fft2(phi_prev * V_r) * P_k)
+            return phi_next, jnp.array(0.0)
 
-        phi_final, phis_all = jax.lax.scan(scan_body, phi, t_r)
+        current_body = body_with_depth if returnDepth else body_no_depth
+
+        if use_checkpoint:
+            current_body = checkpoint(current_body)
+
+        def run_full_process(p, t):
+            phi_final, phis_all = jax.lax.scan(current_body, p, t)
+
+            if probe == "TEM":
+                phi_final = ifft2(fft2(phi_final) * H * mask)
+
+                if returnDepth:
+                    phis_all = jax.vmap(lambda layer: ifft2(fft2(layer) * H * mask))(phis_all)
+
+            return phi_final, phis_all
+
+        phi_final, phis_all = run_full_process(phi, t_r)
+
+        # if use_checkpoint:
+        #     checkpointed_scan = checkpoint(run_full_process)
+        #     phi_final, phis_all = checkpointed_scan(phi, t_r)
+        # else:
+        #     phi_final, phis_all = run_full_process(phi, t_r)
+
         return phi_final, phis_all
 
-    phi_final, phis_all = core_func(phi, t_r, P_k)
-
-    if probe == "TEM":
-        H = getAberrationFunction(sp, tem_aligned)  # shape (len(params), Nx, Ny)
-        if H.ndim < phi.ndim:
-            H = jnp.expand_dims(H, axis=1)
-        phi_final = jnp.fft.ifft2(jnp.fft.fft2(phi_final) * H * sp.mask)
-
-        if returnDepth:
-            phis_all = jax.vmap(lambda p: jnp.fft.ifft2(jnp.fft.fft2(p) * H * sp.mask))(phis_all)
+    phi_final, phis_all = core_func(phi, t_r, P_k, H, sp.mask)
 
     if use_parallel:
         phi_final = with_sharding_constraint(phi_final, replicated)
