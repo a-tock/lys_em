@@ -80,6 +80,18 @@ class TEM(object):
             list: List of TEMParameter objects
         '''
         return self._parameters
+    
+    @property
+    def tilt(self):
+        return jnp.array([p.beamTilt() for p in self.params])
+    
+    @property
+    def defocus(self):
+        return jnp.array([p.defocus for p in self.params])
+    
+    @property
+    def position(self):
+        return jnp.array([p.position for p in self.params])
 
     def devide_params(self, n):
         n = int(np.min([n, len(self.params)]))
@@ -137,27 +149,6 @@ class TEM(object):
     @property
     def num_params(self):
         return self.params_array["defocus"].shape[0]
-
-    def align_to_devices(self, devices):
-        p = self.params_array
-        n_params = p["defocus"].shape[0]
-
-        remainder = n_params % devices
-        if remainder == 0:
-            return self
-
-        pad_size = devices - remainder
-
-        def _pad(arr):
-            last_val = jnp.take(arr, -1, axis=0)
-            padding = jnp.stack([last_val] * pad_size)
-            return jnp.concatenate([arr, padding], axis=0)
-
-        new_cached = {"tilt": _pad(p["tilt"]), "defocus": _pad(p["defocus"]), "position": _pad(p["position"])}
-
-        obj = self.replace(params=self.params + [self.params[0]] * pad_size)
-        obj._cached_arrays = new_cached
-        return obj
 
     def tree_flatten(self):
         if self._cached_arrays is None:
