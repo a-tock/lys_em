@@ -18,19 +18,18 @@ def multislice(pot, tem, probe="TEM", returnDepth=False, use_checkpoint=False):
         phi (numpy.ndarray) : The multislice simulation result.
     """
 
-    # Calculation for single parameter
+    # Calculation for single (i th) parameter
     t_r = pot.getTransmissionFunction(tem)
     def _loop(_, i):
         return _, run_single_param(pot.space, tem, t_r, probe, i, returnDepth, use_checkpoint)
     
-    # Parallelization: "calc" function perform multislice calculation for i th parameter in tem. 
-    ranges = get_worker_indices(len(tem.params), len(jax.devices()))
+    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
+    indices_all = get_worker_indices(len(tem.params), len(jax.devices()))
     calc = jax.shard_map(jax.jit(lambda indices: jax.lax.scan(_loop, None, indices)[1]), 
-                        mesh=jax.sharding.Mesh(jax.devices(), ('i',)), 
-                        in_specs=P('i'), out_specs=P('i',None,None, None) if returnDepth else P('i', None, None))
+                        mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None,None) if returnDepth else P('i',None,None,None))
     
     # Remove padding and unnecessary axis
-    phi = calc(ranges)[:tem.num_params].squeeze()
+    phi = calc(indices_all)[:tem.num_params].squeeze()
     return phi
 
 
@@ -45,32 +44,26 @@ def run_single_param(sp, tem, t_r, probe, index, returnDepth=False, use_checkpoi
         probe: Probe function. Can be list of probe function for partial coherence calculation.
         index(int): It specifies the parameter set in tem.    
     """
-    phi = getWaveFunction(sp, tem, tem.defocus[index], tem.position[index], probe=probe)
-
-    P_k = getPropagationTerm(sp, tem, tem.tilt[index])
-    if phi.ndim == 3:
-        P_k = jnp.expand_dims(P_k, axis=0)    # For ptycography
+    phi = getWaveFunction(sp, tem, tem.defocus[index], tem.position[index], probe=probe) # shape (nprobe, Nx, Ny)
+    P_k = getPropagationTerm(sp, tem, tem.tilt[index]) # shape (Nx, Ny)
 
     # Apply multislice calculation
-    def current_body(phi_prev, V_r):
+    def _body(phi_prev, V_r):
         phi_next = jnp.fft.ifft2(jnp.fft.fft2(phi_prev * V_r) * P_k)
-        return phi_next, phi_next if returnDepth else None
+        return phi_next, phi_next # Storing each wave function can be automatically avoided by optimization of jax if return depth is False
     if use_checkpoint:
-        current_body = checkpoint(current_body)
+        _body = checkpoint(_body)
 
-    phi_final, phis_all = jax.lax.scan(current_body, phi, t_r)
+    phi, phis_all = jax.lax.scan(_body, phi, t_r)
+    if returnDepth:
+        phi = phis_all
 
     # Apply abberration for TEM
     if probe == "TEM":
-        H = getAberrationFunction(sp, tem, tem.defocus[index])  # shape (len(params), Nx, Ny)
-        if H.ndim < phi.ndim:
-            H = jnp.expand_dims(H, axis=0)
-        phi_final = jnp.fft.ifft2(jnp.fft.fft2(phi_final) * H * sp.mask)
+        H = getAberrationFunction(sp, tem, tem.defocus[index])  # shape (Nx, Ny)
+        phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp.mask, axes=(-2,-1))
 
-        if returnDepth:
-            phis_all = jax.vmap(lambda layer: jnp.fft.ifft2(jnp.fft.fft2(layer) * H * sp.mask))(phis_all)
-
-    return phis_all if returnDepth else phi_final
+    return phi
 
 
 def get_worker_indices(num_tasks, num_workers):
@@ -154,7 +147,10 @@ def getWaveFunction(sp, tem, defocus, position, probe="TEM"):
         probe = _mask(jnp.fft.fft2(probe)*jnp.exp(-1j * chi(defocus)))
         # probe = jax.vmap(lambda df: jnp.fft.fft2(probe))(defocus)
 
-    return _shiftProbe(probe, position)
+    phi = _shiftProbe(probe, position)
+    if phi.ndim == 2:
+        phi = jnp.expand_dims(phi, axis=0)    # Virtually consider multiple probes
+    return phi
 
 
 def getAberrationFunction(sp, tem, defocus):
