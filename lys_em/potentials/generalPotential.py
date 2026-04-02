@@ -1,6 +1,7 @@
 from .interface import PotentialInterface
 from ..space import FunctionSpace
 import jax.numpy as jnp
+import jax
 
 
 class GeneralPotential(PotentialInterface):
@@ -24,7 +25,11 @@ class GeneralPotential(PotentialInterface):
             return jnp.unwrap(jnp.unwrap(jnp.angle(self._transFunc), axis=-2), axis=-1)
 
     def getTransmissionFunction(self, beam):
+        @jax.jit
+        def mask(tf):
+            return jnp.fft.ifft2(jnp.fft.fft2(tf) * self._space.mask)
+
         if self._transFunc is not None:
-            return self._transFunc
+            return jax.vmap(mask)(self._transFunc)
         else:
             return super().getTransmissionFunction(beam)
