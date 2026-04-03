@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 from jax.ad_checkpoint import checkpoint
+from functools import partial
 
 def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     """
@@ -18,46 +19,36 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     """
 
     sp = pot.space.asdict()
+    params = tem.asdict(len(jax.devices()))
+    t_r = pot.getTransmissionFunction(tem)
+    f = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
-    @jax.jit
-    def run_single_param(t_r, index):
-        temdict = tem.asdict(index)
-        phi = getWaveFunction(sp, temdict, probe) # shape (nprobe, Nx, Ny)
-        P_k = getPropagationTerm(sp, temdict) # shape (Nx, Ny)
-        phi = jax.lax.scan(lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0), phi, t_r)[0]
+    def _loop(_, dic):
+        phi = getWaveFunction(sp, dic, probe) # shape (nprobe, Nx, Ny)
+        phi = f(phi,sp, dic, t_r)
 
         # Apply abberration for TEM
         if probe == "TEM":
-            H = getAberrationFunction(sp, temdict)  # shape (Nx, Ny)
+            H = getAberrationFunction(sp, dic)  # shape (Nx, Ny)
             phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
-
-        return phi
-
-    # Calculation for single (i th) parameter
-    t_r = pot.getTransmissionFunction(tem)
-    def _loop(_, i):
-        return _, run_single_param(t_r, i)
+        return _, phi
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    indices_all = get_worker_indices(len(tem.params), len(jax.devices()))
-    calc = jax.shard_map(jax.jit(lambda indices: jax.lax.scan(_loop, None, indices)[1]), 
+    calc = jax.shard_map(lambda x: jax.lax.scan(_loop, None, x)[1],
                         mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None))
 
     # Remove padding and unnecessary axis
-    phi = calc(indices_all)[:tem.num_params].squeeze()
+    phi = calc(params)[:tem.num_params].squeeze()
     return phi
 
-#@jax.jit
 
+@jax.jit
+def run_single_param(phi, sp, tem, t_r):
+    P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
+    step = lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0)
+    phi = jax.lax.scan(step, phi, t_r)[0]
+    return phi
 
-def get_worker_indices(num_tasks, num_workers):
-    q, r = num_tasks // num_workers, num_tasks % num_workers
-    max_block = q + (1 if r > 0 else 0)
-    total = num_workers * max_block
-
-    arr = jnp.full((total,), 0, dtype=jnp.int32)
-    arr = arr.at[:num_tasks].set(jnp.arange(num_tasks, dtype=jnp.int32))
-    return arr
 
 @jax.jit
 def getPropagationTerm(sp, tem):
