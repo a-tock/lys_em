@@ -130,3 +130,6 @@ class FunctionSpace:
         The unit of dV is A^2.
         """
         return jnp.sqrt(jnp.linalg.norm(self._unit[0])**2 * jnp.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
+
+    def asdict(self):
+        return {"kvec": self.kvec, "mask": self.mask, "dz": self.dz, "k": self.k}

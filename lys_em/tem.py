@@ -186,6 +186,9 @@ class TEM(object):
         obj._parameters = None
         return obj
 
+    def asdict(self, index):
+        return {"wavelength": self.wavelength, "Cs": self.Cs, "k_max": self.k_max, "tilt": self.tilt[index], "defocus": self.defocus[index], "position": self.position[index]}
+
 
 @register_pytree_node_class
 class TEMParameter:
