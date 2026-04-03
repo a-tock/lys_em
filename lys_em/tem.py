@@ -186,8 +186,20 @@ class TEM(object):
         obj._parameters = None
         return obj
 
-    def asdict(self, index):
-        return {"wavelength": self.wavelength, "Cs": self.Cs, "k_max": self.k_max, "tilt": self.tilt[index], "defocus": self.defocus[index], "position": self.position[index]}
+    def asdict(self, n_devices):
+        num = len(self.params)
+
+        q, r = num // n_devices, num % n_devices
+        max_block = q + (1 if r > 0 else 0)
+        total = n_devices * max_block
+
+        res = {"wavelength": jnp.array([self.wavelength]*num),
+                "Cs": jnp.array([self.Cs]*num),
+                "k_max": jnp.array([self.k_max]*num),
+                "tilt": self.tilt,
+                "defocus": self.defocus,
+                "position": self.position}
+        return {key: jnp.array([value[i] if i < num else value[0] for i in range(total)]) for key, value in res.items()}
 
 
 @register_pytree_node_class
