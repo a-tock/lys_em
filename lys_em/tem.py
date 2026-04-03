@@ -1,8 +1,7 @@
 import numpy as np
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
-import copy
-from .consts import m, e, hbar, kB, h, c
+from .consts import m, e, c
 
 
 @register_pytree_node_class
@@ -80,15 +79,15 @@ class TEM(object):
             list: List of TEMParameter objects
         '''
         return self._parameters
-    
+
     @property
     def tilt(self):
         return jnp.array([p.beamTilt() for p in self.params])
-    
+
     @property
     def defocus(self):
         return jnp.array([p.defocus for p in self.params])
-    
+
     @property
     def position(self):
         return jnp.array([p.position for p in self.params])
@@ -116,7 +115,6 @@ class TEM(object):
 
         new_obj = TEM(acc, convergence=convergence, divergence=divergence, Cs=Cs, params=params)
 
-        # params がリストではなく、単一の TEMParameter で、かつ内部が配列（バッチ）の場合
         if isinstance(params, TEMParameter):
             if hasattr(params._defocus, "ndim") and params._defocus.ndim >= 1:
                 new_obj._cached_arrays = {
@@ -124,8 +122,6 @@ class TEM(object):
                     "defocus": params._defocus,
                     "position": params._position
                 }
-                # multislice内の len(tem.params) 対策として、
-                # 正しい長さを持つダミーリストをセットしておく
                 batch_size = params._defocus.shape[0]
                 new_obj._parameters = [None] * batch_size
 
@@ -164,7 +160,7 @@ class TEM(object):
             positions = self._cached_arrays["position"]
 
         children = (tilts, defocuses, positions, self.__acc, self._Cs, self._convergence, self._divergence)
-        aux_data = {}  # 全て数値なので空
+        aux_data = {}
         return (children, aux_data)
 
     @classmethod
@@ -177,7 +173,6 @@ class TEM(object):
         obj._convergence = convergence
         obj._divergence = divergence
 
-        # 配列をそのまま保持（List[Param]は作らない）
         obj._cached_arrays = {
             "tilt": tilts,
             "defocus": defocuses,
@@ -317,7 +312,7 @@ class TEMParameter:
 
     def tree_flatten(self):
         children = (self._defocus, self._tilt, self._position)
-        aux_data = ()  # 全て数値なので空
+        aux_data = ()
         return (children, aux_data)
 
     @classmethod

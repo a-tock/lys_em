@@ -2,7 +2,6 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 from jax.ad_checkpoint import checkpoint
-from functools import partial
 
 def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     """
@@ -18,23 +17,26 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
         phi (numpy.ndarray) : The multislice simulation result.
     """
 
+    shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
+    checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
+
     sp = pot.space.asdict()
     params = tem.asdict(len(jax.devices()))
     t_r = pot.getTransmissionFunction(tem)
     f = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
-    def _loop(_, dic):
-        phi = getWaveFunction(sp, dic, probe) # shape (nprobe, Nx, Ny)
-        phi = f(phi,sp, dic, t_r)
+    def _loop(_, tem_i):
+        phi = getWaveFunction(sp, tem_i, probe) # shape (nprobe, Nx, Ny)
+        phi = f(phi,sp, tem_i, t_r)
 
         # Apply abberration for TEM
         if probe == "TEM":
-            H = getAberrationFunction(sp, dic)  # shape (Nx, Ny)
+            H = getAberrationFunction(sp, tem_i)  # shape (Nx, Ny)
             phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
         return _, phi
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = jax.shard_map(lambda x: jax.lax.scan(_loop, None, x)[1],
+    calc = shard_map(lambda x: jax.lax.scan(_loop, None, x)[1],
                         mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None))
 
     # Remove padding and unnecessary axis
