@@ -19,13 +19,13 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
     Returns:
         phi (numpy.ndarray) : The multislice simulation result.
     """
-
+    sp = pot.space
     postprocess = init_postprocess(postprocess)
 
     params = tem.asdict(len(jax.devices()))
     calc_phi = single_func(pot, tem, probe, use_checkpoint=use_checkpoint)
     
-    init = jnp.zeros((1,512,512), dtype=jnp.float32)
+    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=jnp.float32)
     @jax.jit
     @checkpoint
     def local_dev(x):
@@ -33,7 +33,7 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
         def _post(carry, param):
             phi = calc_phi(param)
             post = postprocess(phi)
-            return carry + post, None
+            return carry + post, None if sum else post
         
         summed, all = jax.lax.scan(_post, init_varying, x)
         if sum:
@@ -58,7 +58,6 @@ def init_postprocess(post):
 
 
 def single_func(pot, tem, probe, use_checkpoint=False):
-    checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
     sp = pot.space.asdict()
     t_r = pot.getTransmissionFunction(tem)
     probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
@@ -66,11 +65,13 @@ def single_func(pot, tem, probe, use_checkpoint=False):
     @jax.jit
     def run_single_param(phi, sp, tem, t_r):
         P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
-        step = lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0)
-        return jax.lax.scan(step, phi, t_r)[0]
+        step = lambda i, phi: jnp.fft.ifft2(jnp.fft.fft2(phi * t_r[i]) * P_k)
+        step = checkpoint(step)
+        return jax.lax.fori_loop(0, len(t_r), step, phi)
     run_single_param = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
     @jax.jit
+    @checkpoint
     def _loop(tem_i):
         phi = getWaveFunction(sp, tem_i, probes) # shape (nprobe, Nx, Ny)
         phi = run_single_param(phi,sp, tem_i, t_r)
