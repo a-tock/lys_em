@@ -20,18 +20,19 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
         phi (numpy.ndarray) : The multislice simulation result.
     """
     sp = pot.space
+    t_r = pot.getTransmissionFunction(tem)
     postprocess = init_postprocess(postprocess)
 
     params = tem.asdict(len(jax.devices()))
-    calc_phi = single_func(pot, tem, probe, use_checkpoint=use_checkpoint)
-    
-    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=jnp.float32)
+    calc_phi = single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
+
+    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=jnp.complex64)
     @jax.jit
     @checkpoint
-    def local_dev(x):
+    def local_dev(x, t_r):
         init_varying = jax.lax.pcast(init, "i", to="varying")
         def _post(carry, param):
-            phi = calc_phi(param)
+            phi = calc_phi(param, t_r)
             post = postprocess(phi)
             return carry + post, None if sum else post
         
@@ -43,10 +44,10 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
     calc = shard_map(local_dev,
-            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs= P(None,None,None) if sum else P('i',None,None,None))
+            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=(P('i'), P()), out_specs= P(None,None,None) if sum else P('i',None,None,None))
 
     # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params))    # (nparams, nprobe, Nx, Ny)
+    phi = jax.device_get(calc(params, t_r))    # (nparams, nprobe, Nx, Ny)
     return phi
 
 
@@ -57,9 +58,8 @@ def init_postprocess(post):
         return lambda x: abs(x)**2
 
 
-def single_func(pot, tem, probe, use_checkpoint=False):
+def single_func(pot, probe, use_checkpoint=False):
     sp = pot.space.asdict()
-    t_r = pot.getTransmissionFunction(tem)
     probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
 
     @jax.jit
@@ -72,7 +72,7 @@ def single_func(pot, tem, probe, use_checkpoint=False):
 
     @jax.jit
     @checkpoint
-    def _loop(tem_i):
+    def _loop(tem_i, t_r):
         phi = getWaveFunction(sp, tem_i, probes) # shape (nprobe, Nx, Ny)
         phi = run_single_param(phi,sp, tem_i, t_r)
 
