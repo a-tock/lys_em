@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 from jax.ad_checkpoint import checkpoint
 
-def multislice(pot, tem, probe="TEM", use_checkpoint=False):
+def multislice(pot, tem, probe="TEM", post_proc=None, sum=False, use_checkpoint=False):
     """
     Calculate the multislice simulation.
 
@@ -25,22 +25,31 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     t_r = pot.getTransmissionFunction(tem)
     f = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
-    def _loop(_, tem_i):
-        phi = getWaveFunction(sp, tem_i, probe) # shape (nprobe, Nx, Ny)
-        phi = f(phi,sp, tem_i, t_r)
+    def _loop(phi, tem_i):
+        phi_i = getWaveFunction(sp, tem_i, probe) # shape (nprobe, Nx, Ny)
+        phi_i = f(phi_i, sp, tem_i, t_r)
 
         # Apply abberration for TEM
         if probe == "TEM":
             H = getAberrationFunction(sp, tem_i)  # shape (Nx, Ny)
-            phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
-        return _, phi
+            phi_i = jnp.fft.ifft2(jnp.fft.fft2(phi_i, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
+
+        if post_proc is not None:
+            phi_i = post_proc(phi_i)
+        if sum:
+            phi += phi_i
+        return phi, 0 if sum else phi_i
+
+    n_modes = 1 if type(probe) is str else probe.shape[0]
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = shard_map(lambda x: jax.lax.scan(_loop, None, x)[1],
-                        mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None))
+    calc = shard_map(lambda x: jax.lax.scan(_loop, jax.lax.pcast(jnp.zeros((n_modes, *t_r.shape[1:]), dtype=t_r.dtype), axis_name='i', to='varying'), x)[0 if sum else 1],
+                        mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i', None, None) if sum else P('i',None,None,None))
 
     # Remove padding and unnecessary axis
-    phi = calc(params)[:tem.num_params].squeeze()
+    phi = calc(params)
+    if not sum:
+        phi = phi[:tem.num_params].squeeze()
     return phi
 
 
