@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
-from jax.ad_checkpoint import checkpoint
 
 def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     """
@@ -23,33 +22,34 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
     sp = pot.space.asdict()
     params = tem.asdict(len(jax.devices()))
     t_r = pot.getTransmissionFunction(tem)
+    probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
     f = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
-    def _loop(_, tem_i):
-        phi = getWaveFunction(sp, tem_i, probe) # shape (nprobe, Nx, Ny)
+    @jax.jit
+    def _loop(tem_i):
+        phi = getWaveFunction(sp, tem_i, probes) # shape (nprobe, Nx, Ny)
         phi = f(phi,sp, tem_i, t_r)
 
         # Apply abberration for TEM
         if probe == "TEM":
             H = getAberrationFunction(sp, tem_i)  # shape (Nx, Ny)
             phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
-        return _, phi
+        return phi
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = shard_map(lambda x: jax.lax.scan(_loop, None, x)[1],
+    calc = shard_map(lambda x: jax.lax.map(_loop,x),
                         mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None))
 
-    # Remove padding and unnecessary axis
-    phi = calc(params)[:tem.num_params].squeeze()
-    return phi
+    # Move to main, remove padding and unnecessary axis
+    phi = jax.device_get(calc(params))    # (nparams, nprobe, Nx, Ny)
+    return phi[:tem.num_params].squeeze()
 
 
 @jax.jit
 def run_single_param(phi, sp, tem, t_r):
     P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
     step = lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0)
-    phi = jax.lax.scan(step, phi, t_r)[0]
-    return phi
+    return jax.lax.scan(step, phi, t_r)[0]
 
 
 @jax.jit
@@ -93,6 +93,8 @@ def getPropagationTerm(sp, tem):
     theta = _cartesianBeamTilt(jnp.deg2rad(tilt))
     return _propagationTerm(theta)
 
+
+@jax.jit
 def getWaveFunction(sp, tem, probe="TEM"):
     """
     Calculate the wave function of the multislice simulation.
@@ -119,15 +121,8 @@ def getWaveFunction(sp, tem, probe="TEM"):
         return jnp.where(k_norm <= k_max, arr, 0j)
 
     chi = getChi(sp, tem)
-
-    if type(probe) is str and probe in ["TEM", "STEM"]:
-        probes = _mask(jnp.exp(-1j * chi(defocus)))
-    else:
-        probes = _mask(jnp.fft.fft2(probe)*jnp.exp(-1j * chi(defocus)))
-
+    probes = _mask(jnp.fft.fft2(probe)*jnp.exp(-1j * chi(defocus)))
     phi = _shiftProbe(probes, position)
-    if phi.ndim == 2:
-        phi = jnp.expand_dims(phi, axis=0)    # Virtually consider multiple probes
     return phi
 
 
@@ -172,6 +167,7 @@ def getChi(sp, tem):
     l = tem["wavelength"]  # A
     Cs = tem["Cs"]  # A
 
+    @jax.jit
     def _chi(df):  # df : A
         return 2 * jnp.pi / l * (Cs * ((l * k)**4) / 4 - df * ((l * k)**2) / 2)
 
