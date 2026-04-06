@@ -2,7 +2,11 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
-def multislice(pot, tem, probe="TEM", use_checkpoint=False):
+checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
+shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
+
+
+def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_checkpoint=False):
     """
     Calculate the multislice simulation.
 
@@ -16,19 +20,60 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
         phi (numpy.ndarray) : The multislice simulation result.
     """
 
-    shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
-    checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
+    postprocess = init_postprocess(postprocess)
 
-    sp = pot.space.asdict()
     params = tem.asdict(len(jax.devices()))
+    calc_phi = single_func(pot, tem, probe, use_checkpoint=use_checkpoint)
+    
+    init = jnp.zeros((1,512,512), dtype=jnp.float32)
+    @jax.jit
+    @checkpoint
+    def local_dev(x):
+        init_varying = jax.lax.pcast(init, "i", to="varying")
+        def _post(carry, param):
+            phi = calc_phi(param)
+            post = postprocess(phi)
+            return carry + post, None
+        
+        summed, all = jax.lax.scan(_post, init_varying, x)
+        if sum:
+            return jax.lax.psum(summed, "i")
+        else:
+            return all
+
+    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
+    calc = shard_map(local_dev,
+            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs= P(None,None,None) if sum else P('i',None,None,None))
+
+    # Move to main, remove padding and unnecessary axis
+    phi = jax.device_get(calc(params))    # (nparams, nprobe, Nx, Ny)
+    return phi
+
+
+def init_postprocess(post):
+    if post is None:
+        return lambda x: x
+    elif post == "square":
+        return lambda x: abs(x)**2
+
+
+def single_func(pot, tem, probe, use_checkpoint=False):
+    checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
+    sp = pot.space.asdict()
     t_r = pot.getTransmissionFunction(tem)
     probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
-    f = checkpoint(run_single_param) if use_checkpoint else run_single_param
+
+    @jax.jit
+    def run_single_param(phi, sp, tem, t_r):
+        P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
+        step = lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0)
+        return jax.lax.scan(step, phi, t_r)[0]
+    run_single_param = checkpoint(run_single_param) if use_checkpoint else run_single_param
 
     @jax.jit
     def _loop(tem_i):
         phi = getWaveFunction(sp, tem_i, probes) # shape (nprobe, Nx, Ny)
-        phi = f(phi,sp, tem_i, t_r)
+        phi = run_single_param(phi,sp, tem_i, t_r)
 
         # Apply abberration for TEM
         if probe == "TEM":
@@ -36,20 +81,7 @@ def multislice(pot, tem, probe="TEM", use_checkpoint=False):
             phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
         return phi
 
-    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = shard_map(lambda x: jax.lax.map(_loop,x),
-                        mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=P('i'), out_specs=P('i',None,None,None))
-
-    # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params))    # (nparams, nprobe, Nx, Ny)
-    return phi[:tem.num_params].squeeze()
-
-
-@jax.jit
-def run_single_param(phi, sp, tem, t_r):
-    P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
-    step = lambda phi, V: (jnp.fft.ifft2(jnp.fft.fft2(phi * V) * P_k), 0)
-    return jax.lax.scan(step, phi, t_r)[0]
+    return _loop
 
 
 @jax.jit
