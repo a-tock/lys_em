@@ -38,10 +38,13 @@ class MultiSlice_test(unittest.TestCase):
 
         sp = FunctionSpace(a, a, a, Nz=10)
         tem = TEM(60e3)
+        spdict = sp.asdict()
+        temdict = tem.asdict(len(jax.devices()))
+        temdict = {key: item[0] for key, item in temdict.items()}
 
         phi = np.zeros((128, 128), dtype=np.complex64)
         phi[0, 0] = 1
-        P_k = np.array(getPropagationTerm(sp, tem)[0])
+        P_k = np.array(getPropagationTerm(spdict, temdict))
 
         # compared with theoretical solution (propagation after a in free space)
         for i in range(10):
@@ -64,7 +67,6 @@ class MultiSlice_test(unittest.TestCase):
         pot = CrystalPotential(sp, TaTe2)
         tem = TEM(0.75e6, params=TEMParameter(tilt=[-0.80437, 0]))
         res = diffraction(multislice(pot, tem))
-#        res = calcSADiffraction(0.75e6, TaTe2, 90, Nx=512, Ny=256, tilt=[-0.80437, 0])
         res = jnp.sqrt(res)[:13, 0]
         ans = np.array([0.5577267344048619, 0, 0.002756932398382368, 0, 0.010163465792031692, 0, 0.11391665208304297, 0, 0.0031967300829784428, 0, 0.0024738436644140016, 0, 0.21191082484442536])
         assert_array_almost_equal(res / res[0], ans / ans[0], decimal=4)
@@ -96,6 +98,25 @@ class MultiSlice_test(unittest.TestCase):
         res = diffraction(multislice(pot, tem)).sum(axis=0)
         ans = np.load(self.path + "/Au_PED.npy")
         assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
+
+    def test_grad(self):
+
+        TiO2 = CrystalStructure.loadFrom(self.path + "/TiO2_rutile.cif")
+        crys = TiO2.createParametrizedCrystal(cell=False)
+        sp = FunctionSpace.fromCrystal(crys, Nx=128, Ny=128, ncells=30, division=1)
+        pot = CrystalPotential(sp, crys)
+        tem = TEM(200e3, params=[TEMParameter(tilt=[2, 0], defocus=0.1)])
+
+        def calc_intensity(y_O4, Cs, theta, defocus):
+            pot_subs = pot.replace(params={"y_O4": y_O4})
+            tem_subs = tem.replace(Cs=Cs, params=[TEMParameter(tilt=[theta, 0], defocus=defocus)])
+            return diffraction(multislice(pot_subs, tem_subs)).sum(axis=0)
+
+        def func_for_grad(values):
+            return calc_intensity(*values).sum()
+
+        grad = jax.grad(func_for_grad)
+        print(jnp.array(grad([1.95, 0.1, 1.5, 0.1])))   #[-2.888e-02  5.261e-10 -1.283e-03  1.292e-05]
 
 
 class CrystalPotential_test(unittest.TestCase):
