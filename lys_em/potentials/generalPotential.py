@@ -9,14 +9,18 @@ class GeneralPotential(PotentialInterface):
         super().__init__(space)
         self._sp = space
         if isTransFunc:
+            @jax.jit
+            def mask(tf):
+                return jnp.fft.ifft2(jnp.fft.fft2(tf) * space.mask)
+
             self._pot = None
-            self._transFunc = potential
+            self._transFunc = jax.vmap(mask)(potential)
         else:
             self._pot = potential
             self._transFunc = None
 
-    def replace(self, potential, isTransFunc=False):
-        return GeneralPotential(self._sp, potential, isTransFunc=isTransFunc)
+    def replace(self, potential):
+        return GeneralPotential(self._sp, potential, isTransFunc=self._transFunc is not None)
 
     def getPhase(self, beam):
         if self._pot is not None:
@@ -25,11 +29,7 @@ class GeneralPotential(PotentialInterface):
             return jnp.unwrap(jnp.unwrap(jnp.angle(self._transFunc), axis=-2), axis=-1)
 
     def getTransmissionFunction(self, beam):
-        @jax.jit
-        def mask(tf):
-            return jnp.fft.ifft2(jnp.fft.fft2(tf) * self._space.mask)
-
         if self._transFunc is not None:
-            return jax.vmap(mask)(self._transFunc)
+            return self._transFunc
         else:
             return super().getTransmissionFunction(beam)
