@@ -6,7 +6,7 @@ checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint
 shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
 
 
-def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_checkpoint=False):
+def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, use_checkpoint=False):
     """
     Calculate the multislice simulation.
 
@@ -26,7 +26,7 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
     params = tem.asdict(len(jax.devices()))
     calc_phi = single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
 
-    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=jnp.complex64)
+    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=t_r.dtype)
     @jax.jit
     @checkpoint
     def local_dev(x, t_r):
@@ -34,7 +34,8 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
         def _post(carry, param):
             phi = calc_phi(param, t_r)
             post = postprocess(phi)
-            return carry + post, None if sum else post
+            carry += post
+            return carry, None if sum else post
 
         summed, all = jax.lax.scan(_post, init_varying, x)
         if sum:
@@ -48,14 +49,24 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
 
     # Move to main, remove padding and unnecessary axis
     phi = jax.device_get(calc(params, t_r))    # (nparams, nprobe, Nx, Ny)
+
+    if jnp.all(jnp.imag(phi) == 0):
+        phi = phi.real
     return phi
 
+# future work
+# probeのmodeもsumを取ったほうが良さそう
+# dataも渡せるようにする
+# cpuの場合は、t_rをデバイスにコピーするようになっている。修正できるか？
+# t_rのスライスをメモリに同時に乗せないようにできればするとよい
 
 def init_postprocess(post):
     if post is None:
         return lambda x: x
     elif post == "square":
-        return lambda x: abs(x)**2
+        return lambda x: jnp.abs(x)**2
+    elif post == "diffraction":
+        return lambda x: jnp.abs(jnp.fft.fft2(x))**2
 
 
 def single_func(pot, probe, use_checkpoint=False):
