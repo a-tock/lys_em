@@ -18,7 +18,20 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
         pot (CrystalPotential): The CrystalPotential object.
         tem (TEM) : The TEM object.
         probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
-            The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
+            The probe wave function should be a 3D array of shape (modes, Nx, Ny). Default is "TEM".
+        postprocess (str or callable) : Specifies the post-processing method.
+            It can be None (default), a string ("square" or "diffraction"), or a user-defined callable.
+        sum (bool) : Whether to sum the data over all parameters in the tem.params list. Default is False.
+        data (numpy.ndarray) : Additional data for post-processing.
+            Required only if the postprocess method depends on external input; otherwise, None (default).
+            Must have shape (len(tem.params), Nx, Ny) when provided.
+        use_checkpoint (bool) : Whether to use `jax.checkpoint`.
+            This reduces memory consumption during the backward pass by recomputing intermediate values,
+            though it increases total computation time. Refer to the JAX documentation for more details.
+            If you encounter Out-of-Memory (OOM) errors during the backward pass, try setting this to True.
+            Default is False.
+        mesh (jax.sharding.Mesh) : A 1D mesh for device parallelism.
+            If None, a mesh is automatically generated. Default is None.
 
     Returns:
         phi (numpy.ndarray) : The multislice simulation result.
@@ -140,8 +153,8 @@ def getPropagationTerm(sp, tem):
     The propagation term is calculated as exp(1j * k * dz).
 
     Args:
-        sp (FunctionSpace): The function space object.
-        tem (TEM): The TEM object.
+        sp (dict): A FunctionSpace object serialized into a dictionary via asdict.
+        tem (dict): A TEM object serialized into a dictionary via asdict.
 
     Returns:
         numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is
@@ -171,13 +184,13 @@ def getWaveFunction(sp, tem, probe="TEM"):
     Calculate the wave function of the multislice simulation.
 
     Args:
-        sp (FunctionSpace): The function space object.
-        tem (TEM) : The TEM object.
-        probe (str or array) : The probe type or the probe wave function.Probe type can be "TEM" or "STEM".
-            The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
+        sp (dict): A FunctionSpace object serialized into a dictionary via asdict.
+        tem (dict): A TEM object serialized into a dictionary via asdict.
+        probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
+            The probe wave function should be a 3D array of shape (modes, Nx, Ny). Default is "TEM".
 
     Returns:
-        numpy.ndarray: A 3D array of shape (len(tem.params), Nx, Ny) where each element is the wave function at the respective grid point in real space.
+        numpy.ndarray: A 3D array of shape (modes, Nx, Ny) where each element is the wave function at the respective grid point in real space.
     """
 
     kvec, k_max = sp["kvec"], tem["k_max"]
@@ -207,11 +220,11 @@ def getAberrationFunction(sp, tem):
     aberration coefficient Cs. The defocus values are given in Angstrom.
 
     Args:
-        sp (FunctionSpace): The function space object.
-        tem (TEM) : The TEM object.
+        sp (dict): A FunctionSpace object serialized into a dictionary via asdict.
+        tem (dict): A TEM object serialized into a dictionary via asdict.
 
     Returns:
-        numpy.ndarray: A 2D array of shape (len(params), Nx, Ny) where each element is the aberration function at the respective grid point in real space.
+        numpy.ndarray: A 2D array of shape (Nx, Ny) where each element is the aberration function at the respective grid point in real space.
     """
     defocus = tem["defocus"]
     chi = getChi(sp, tem)
@@ -228,8 +241,8 @@ def getChi(sp, tem):
     aberration coefficient Cs is given in millimeters.
 
     Args:
-        sp (FunctionSpace): The function space object.
-        tem (TEM) : The TEM object.
+        sp (dict): A FunctionSpace object serialized into a dictionary via asdict.
+        tem (dict): A TEM object serialized into a dictionary via asdict.
 
     Returns:
         callable: A function that takes a defocus value df in Angstrom and returns the chi function at that defocus value.
