@@ -9,7 +9,7 @@ from lys_em import TEM, TEMParameter, FunctionSpace  # , calcSADiffraction, calc
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import getPropagationTerm, multislice, getChi
-from lys_em.functions import diffraction, make_mesh
+from lys_em.functions import diffraction
 from lys_em.potentials.crystalPotential import CrystalPotential
 
 jax.config.update("jax_enable_x64", True)

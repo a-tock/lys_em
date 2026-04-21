@@ -1,12 +1,14 @@
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
-from jax.experimental.shard_map import shard_map
 import inspect
 
 checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
-shard_map = jax.shard_map if hasattr(jax, 'shard_map') else shard_map #jax.experimental.shard_map.shard_map
 
+if hasattr(jax, 'shard_map'):
+    shard_map = jax.shard_map
+else:
+    from jax.experimental.shard_map import shard_map
 
 def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, use_checkpoint=False, mesh=None):
     """
@@ -72,10 +74,10 @@ def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, us
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem.
     calc = shard_map(local_dev, mesh=mesh,
-            in_specs=(P(axis_name), P(axis_name), P(axis_name) if data is not None else P(), P()), out_specs= P(None,None,None) if sum else P(axis_name,None,None,None), check_rep=False)
+            in_specs=(P(axis_name), P(axis_name), P(axis_name) if data is not None else P(), P()), out_specs= P(None,None) if sum else P(axis_name,None,None))
 
     # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, nprobe, Nx, Ny)
+    phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, Nx, Ny)
     if not sum:
         phi = phi[:len(tem.params)]
 
