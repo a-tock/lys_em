@@ -42,8 +42,8 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
 
     devices = jax.devices()
 
-    params, padded = tem.asdict(len(devices))
-    data_safe = None if data is None else jnp.take(data, jnp.where(padded, 0, jnp.arange(len(padded))), axis=0)
+    params, mask = tem.asdict(len(devices))
+    data_safe = None if data is None else jnp.take(data, jnp.where(mask, jnp.arange(len(mask)), 0), axis=0)
     calc_phi = _single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
 
     if mesh is None:
@@ -55,7 +55,7 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
     init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=t_r.dtype)
     @jax.jit
     @checkpoint
-    def local_dev(x, padded, data, t_r):
+    def local_dev(x, mask, data, t_r):
         if hasattr(jax.lax, "pcast"):
             init_varying = jax.lax.pcast(init, axis_name, to="varying")
         else:
@@ -63,9 +63,9 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
 
         def _post(carry, input):
             if len(input) == 3:
-                param, padded, data = input
+                param, mask, data = input
             else:
-                param, padded = input
+                param, mask = input
                 data = None
             phi = calc_phi(param, t_r)
             phi = jnp.sum(phi, axis=0)
@@ -74,12 +74,12 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
             else:
                 post = postprocess(phi)
 
-            return jnp.where(padded, carry, carry + post), None if sum else post
+            return jnp.where(mask, carry + post, carry), None if sum else post
 
         if data is None:
-            summed, all = jax.lax.scan(_post, init_varying, (x, padded))
+            summed, all = jax.lax.scan(_post, init_varying, (x, mask))
         else:
-            summed, all = jax.lax.scan(_post, init_varying, (x, padded, data))
+            summed, all = jax.lax.scan(_post, init_varying, (x, mask, data))
 
         if sum:
             return jax.lax.psum(summed, axis_name)
@@ -91,8 +91,8 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
             in_specs=(P(axis_name), P(axis_name), P(axis_name) if data is not None else P(), P()), out_specs= P(None,None) if sum else P(axis_name,None,None))
 
     # Move to main, remove padding and unnecessary axis
-    phi = calc(params, padded, data_safe, t_r)    # (nparams, Nx, Ny)
-    # phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, Nx, Ny)
+    phi = calc(params, mask, data_safe, t_r)    # (nparams, Nx, Ny)
+    # phi = jax.device_get(calc(params, mask, data_safe, t_r))    # (nparams, Nx, Ny)
     if not sum:
         phi = phi[:len(tem.params)]
 

@@ -119,11 +119,10 @@ class TEM(object):
         Args:
             n (int): The number of groups.
 
-        RReturns:
-        tuple: (tems, indices)
-            - tems (list): A list of TEM objects partitioned into `n` groups.
-            - indices (list of ndarray): The original indices of `self.params`
-                corresponding to each TEM object in `tems`.
+        Returns:
+            tuple: (tems, indices)
+                - tems (list): A list of TEM objects partitioned into `n` groups.
+                - indices (list of ndarray): The original indices of `self.params` corresponding to each TEM object in `tems`.
         """
         n = int(np.min([n, len(self.params)]))
         tems = []
@@ -205,14 +204,23 @@ class TEM(object):
 
     def asdict(self, n_devices):
         """
-        Convert the TEM object to a dictionary of arrays.
+        Convert the TEM object to a dictionary of arrays, padded for device parallelism.
+
+        This method reshapes and pads the parameters so that they can be evenly 
+        distributed across the specified number of devices. If the number of 
+        parameters is not a multiple of `n_devices`, the remaining slots are 
+        filled with the first parameter (at index 0) to maintain a regular shape.
 
         Args:
-            n_devices (int): The number of devices.
+            n_devices (int): The number of devices to shard the data across.
 
         Returns:
-            tuple (dict, jax.numpy.array): 
-                A tuple containing the dictionary of arrays and a boolean array.
+            tuple: A tuple containing:
+                - dict: A dictionary where each key (e.g., 'wavelength', 'tilt') 
+                  maps to a JAX array of length `total = n_devices * max_block`.
+                - jax.numpy.ndarray: A boolean mask array of the same length as 
+                  the values in the dict. `True` indicates a valid original parameter,
+                  and `False` indicates a padded (dummy) parameter.
         """
         num = len(self.params)
 
@@ -228,12 +236,9 @@ class TEM(object):
                 "position": self.position}
 
         idx = jnp.arange(total)
-        safe_idx = jnp.where(idx < num, idx, 0)
-        padded = jnp.where(idx < num, False, True)
+        params = {key: jnp.take(val, jnp.where(idx < num, idx, 0), axis=0) for key, val in res.items()}
 
-        params = {key: jnp.take(val, safe_idx, axis=0) for key, val in res.items()}
-
-        return params, padded
+        return params, jnp.where(idx < num, True, False)
 
 
 @register_pytree_node_class
