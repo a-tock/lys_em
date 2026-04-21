@@ -44,6 +44,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
 </ul>
@@ -74,26 +75,77 @@
              
   <h1>Source code for lys_em.potentials.generalPotential</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">.interface</span> <span class="kn">import</span> <span class="n">PotentialInterface</span>
+<span class="kn">from</span> <span class="nn">..space</span> <span class="kn">import</span> <span class="n">FunctionSpace</span>
+<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+<span class="kn">import</span> <span class="nn">jax</span>
 
 
 <div class="viewcode-block" id="GeneralPotential">
 <a class="viewcode-back" href="../../../lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential">[docs]</a>
 <span class="k">class</span> <span class="nc">GeneralPotential</span><span class="p">(</span><span class="n">PotentialInterface</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space</span><span class="p">,</span> <span class="n">potential</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space</span><span class="p">,</span> <span class="n">potential</span><span class="p">,</span> <span class="n">isTransFunc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">space</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sp</span> <span class="o">=</span> <span class="n">space</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span> <span class="o">=</span> <span class="n">potential</span>
+        <span class="k">if</span> <span class="n">isTransFunc</span><span class="p">:</span>
+            <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+            <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="n">tf</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">mask</span><span class="p">)(</span><span class="n">potential</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span> <span class="o">=</span> <span class="n">potential</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="GeneralPotential.replace">
 <a class="viewcode-back" href="../../../lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential.replace">[docs]</a>
     <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">potential</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">GeneralPotential</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sp</span><span class="p">,</span> <span class="n">potential</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a copy of the GeneralPotential object with the provided potential.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            potential (array-like): The potential to replace the existing potential.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            GeneralPotential: A new GeneralPotential object with the provided potential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">GeneralPotential</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sp</span><span class="p">,</span> <span class="n">potential</span><span class="p">,</span> <span class="n">isTransFunc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GeneralPotential.getPhase">
 <a class="viewcode-back" href="../../../lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential.getPhase">[docs]</a>
     <span class="k">def</span> <span class="nf">getPhase</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beam</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the phase of the potential.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            beam (TEM): The TEM object representing the incident electron beam.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jax.numpy.ndarray: The phase of the potential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pot</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">unwrap</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">unwrap</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GeneralPotential.getTransmissionFunction">
+<a class="viewcode-back" href="../../../lys_em_/potential.html#lys_em.potentials.generalPotential.GeneralPotential.getTransmissionFunction">[docs]</a>
+    <span class="k">def</span> <span class="nf">getTransmissionFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beam</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the transmission function of the potential.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            beam (TEM): The TEM object representing the incident electron beam.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jax.numpy.ndarray: The transmission function of the potential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transFunc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getTransmissionFunction</span><span class="p">(</span><span class="n">beam</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

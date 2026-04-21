@@ -47,11 +47,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">Python API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tem.html">tem</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">space</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.space.FunctionSpace"><code class="docutils literal notranslate"><span class="pre">FunctionSpace</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.space.FunctionSpace.N"><code class="docutils literal notranslate"><span class="pre">FunctionSpace.N</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lys_em.space.FunctionSpace.asdict"><code class="docutils literal notranslate"><span class="pre">FunctionSpace.asdict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.space.FunctionSpace.c"><code class="docutils literal notranslate"><span class="pre">FunctionSpace.c</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.space.FunctionSpace.dV"><code class="docutils literal notranslate"><span class="pre">FunctionSpace.dV</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lys_em.space.FunctionSpace.dz"><code class="docutils literal notranslate"><span class="pre">FunctionSpace.dz</span></code></a></li>
@@ -124,6 +126,20 @@ The length of the rectangular space is defined by a and b. Each cell of the grid
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">N</span></span><a class="headerlink" href="#lys_em.space.FunctionSpace.N" title="Link to this definition"></a></dt>
 <dd><p>Return a tuple of shape (2,) containing the number of grid points in
 the x and y directions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.space.FunctionSpace.asdict">
+<span class="sig-name descname"><span class="pre">asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/space.html#FunctionSpace.asdict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.space.FunctionSpace.asdict" title="Link to this definition"></a></dt>
+<dd><p>Return a dictionary representation of the FunctionSpace instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the attributes of the FunctionSpace instance.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">

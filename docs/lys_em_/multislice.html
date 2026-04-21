@@ -55,7 +55,6 @@
 <li class="toctree-l2"><a class="reference internal" href="scatteringFactor.html">scatteringFactor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kinematical.html">kinematical</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">multislice</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.diffraction"><code class="docutils literal notranslate"><span class="pre">diffraction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getAberrationFunction"><code class="docutils literal notranslate"><span class="pre">getAberrationFunction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getChi"><code class="docutils literal notranslate"><span class="pre">getChi()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lys_em.multislice.getPropagationTerm"><code class="docutils literal notranslate"><span class="pre">getPropagationTerm()</span></code></a></li>
@@ -96,11 +95,6 @@
   <section id="module-lys_em.multislice">
 <span id="multislice"></span><h1>multislice<a class="headerlink" href="#module-lys_em.multislice" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="lys_em.multislice.diffraction">
-<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">diffraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#diffraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.diffraction" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="lys_em.multislice.getAberrationFunction">
 <span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">getAberrationFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#getAberrationFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.getAberrationFunction" title="Link to this definition"></a></dt>
 <dd><p>Return the aberration function of the multislice simulation.</p>
@@ -110,12 +104,12 @@ aberration coefficient Cs. The defocus values are given in Angstrom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
-<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>sp</strong> (<em>dict</em>) – A FunctionSpace object serialized into a dictionary via asdict.</p></li>
+<li><p><strong>tem</strong> (<em>dict</em>) – A TEM object serialized into a dictionary via asdict.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A 2D array of shape (len(params), Nx, Ny) where each element is the aberration function at the respective grid point in real space.</p>
+<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is the aberration function at the respective grid point in real space.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
@@ -134,8 +128,8 @@ aberration coefficient Cs is given in millimeters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
-<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>sp</strong> (<em>dict</em>) – A FunctionSpace object serialized into a dictionary via asdict.</p></li>
+<li><p><strong>tem</strong> (<em>dict</em>) – A TEM object serialized into a dictionary via asdict.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -162,8 +156,8 @@ reciprocal space. The unit of k is rad/A.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
-<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>sp</strong> (<em>dict</em>) – A FunctionSpace object serialized into a dictionary via asdict.</p></li>
+<li><p><strong>tem</strong> (<em>dict</em>) – A TEM object serialized into a dictionary via asdict.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -183,14 +177,14 @@ the propagation term at the respective grid point in reciprocal space.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sp</strong> (<a class="reference internal" href="space.html#lys_em.space.FunctionSpace" title="lys_em.space.FunctionSpace"><em>FunctionSpace</em></a>) – The function space object.</p></li>
-<li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
+<li><p><strong>sp</strong> (<em>dict</em>) – A FunctionSpace object serialized into a dictionary via asdict.</p></li>
+<li><p><strong>tem</strong> (<em>dict</em>) – A TEM object serialized into a dictionary via asdict.</p></li>
 <li><p><strong>probe</strong> (<em>str</em><em> or </em><em>array</em>) – The probe type or the probe wave function. Probe type can be “TEM” or “STEM”.
-The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TEM”.</p></li>
+The probe wave function should be a 3D array of shape (modes, Nx, Ny). Default is “TEM”.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is the wave function at the respective grid point in real space.</p>
+<dd class="field-even"><p>A 3D array of shape (modes, Nx, Ny) where each element is the wave function at the respective grid point in real space.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
@@ -200,7 +194,7 @@ The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TE
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lys_em.multislice.multislice">
-<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">multislice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEM'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#multislice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.multislice" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lys_em.multislice.</span></span><span class="sig-name descname"><span class="pre">multislice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_checkpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/multislice.html#multislice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.multislice.multislice" title="Link to this definition"></a></dt>
 <dd><p>Calculate the multislice simulation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -208,7 +202,20 @@ The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TE
 <li><p><strong>pot</strong> (<a class="reference internal" href="potential.html#lys_em.potentials.crystalPotential.CrystalPotential" title="lys_em.potentials.crystalPotential.CrystalPotential"><em>CrystalPotential</em></a>) – The CrystalPotential object.</p></li>
 <li><p><strong>tem</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object.</p></li>
 <li><p><strong>probe</strong> (<em>str</em><em> or </em><em>array</em>) – The probe type or the probe wave function. Probe type can be “TEM” or “STEM”.
-The probe wave function should be a 2D array of shape (Nx, Ny). Default is “TEM”.</p></li>
+The probe wave function should be a 3D array of shape (modes, Nx, Ny). Default is “TEM”.</p></li>
+<li><p><strong>postprocess</strong> (<em>str</em><em> or </em><em>callable</em>) – Specifies the post-processing method.
+It can be None (default), a string (“square” or “diffraction”), or a user-defined callable.</p></li>
+<li><p><strong>sum</strong> (<em>bool</em>) – Whether to sum the data over all parameters in the tem.params list. Default is False.</p></li>
+<li><p><strong>data</strong> (<em>numpy.ndarray</em>) – Additional data for post-processing.
+Required only if the postprocess method depends on external input; otherwise, None (default).
+Must have shape (len(tem.params), Nx, Ny) when provided.</p></li>
+<li><p><strong>use_checkpoint</strong> (<em>bool</em>) – Whether to use <cite>jax.checkpoint</cite>.
+This reduces memory consumption during the backward pass by recomputing intermediate values,
+though it increases total computation time. Refer to the JAX documentation for more details.
+If you encounter Out-of-Memory (OOM) errors during the backward pass, try setting this to True.
+Default is False.</p></li>
+<li><p><strong>mesh</strong> (<em>jax.sharding.Mesh</em>) – A 1D mesh for device parallelism.
+If None, a mesh is automatically generated. Default is None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
