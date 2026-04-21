@@ -130,4 +130,10 @@ class FunctionSpace:
         return jnp.sqrt(jnp.linalg.norm(self._unit[0])**2 * jnp.linalg.norm(self._unit[1])**2 - self._unit[0].dot(self._unit[1])**2) / self._N[0] / self._N[1]
 
     def asdict(self):
+        """
+        Return a dictionary representation of the FunctionSpace instance.
+
+        Returns:
+            dict: A dictionary containing the attributes of the FunctionSpace instance.
+        """
         return {"kvec": self.kvec, "mask": self.mask, "dz": self.dz, "k": self.k}

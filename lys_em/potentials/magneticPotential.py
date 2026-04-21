@@ -39,7 +39,7 @@ class MagneticPotential(PotentialInterface):
             beam (TEM): The TEM object.
 
         Returns:
-            numpy.ndarray: A 2D array of shape (Nx, Ny) containing the phase shift of the electron beam at each grid point in radians.
+            jax.numpy.ndarray: A 2D array of shape (Nx, Ny) containing the phase shift of the electron beam at each grid point in radians.
         """
         mx, my = jnp.fft.fft2(self._M[:, :, :, 0]) * self._sp.dV, jnp.fft.fft2(self._M[:, :, :, 1]) * self._sp.dV
         k = self._sp.kvec

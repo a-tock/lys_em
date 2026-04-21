@@ -42,7 +42,8 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
 
     devices = jax.devices()
 
-    params, padded, data_safe = tem.asdict(len(devices), data=data)
+    params, padded = tem.asdict(len(devices))
+    data_safe = None if data is None else jnp.take(data, jnp.where(padded, 0, jnp.arange(len(padded))), axis=0)
     calc_phi = _single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
 
     if mesh is None:

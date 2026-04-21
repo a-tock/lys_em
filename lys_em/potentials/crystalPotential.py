@@ -71,7 +71,7 @@ class CrystalPotential(PotentialInterface):
             beam (TEM): The TEM object representing the incident electron beam.
 
         Returns:
-            float: The phase of the crystal potential.
+            jax.numpy.ndarray: The phase of the crystal potential.
         """
         @jax.jit
         def _calcPhase(V_k, mask, kd, n):
@@ -94,7 +94,7 @@ class CrystalPotential(PotentialInterface):
             crys (CrystalStructure): The crystal object containing unit cell and lattice information.
 
         Returns:
-            numpy.ndarray: The potential of the crystal slice.
+            jax.numpy.ndarray: The potential of the crystal slice.
         """
         k = self.space.kvec
         q = jnp.array([k[:, :, 0], k[:, :, 1], k[:, :, 1] * 0]).transpose(1, 2, 0)

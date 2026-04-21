@@ -40,7 +40,7 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace(a, a, a, Nz=10)
         tem = TEM(60e3)
         spdict = sp.asdict()
-        temdict, _, _ = tem.asdict(len(jax.devices()))
+        temdict, _ = tem.asdict(len(jax.devices()))
         temdict = {key: item[0] for key, item in temdict.items()}
 
         phi = np.zeros((128, 128), dtype=np.complex64)
