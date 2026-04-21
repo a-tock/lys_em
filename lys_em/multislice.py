@@ -1,12 +1,14 @@
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
+from jax.experimental.shard_map import shard_map
+import inspect
 
 checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
-shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
+shard_map = jax.shard_map if hasattr(jax, 'shard_map') else shard_map #jax.experimental.shard_map.shard_map
 
 
-def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, use_checkpoint=False):
+def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, use_checkpoint=False, mesh=None):
     """
     Calculate the multislice simulation.
 
@@ -23,42 +25,62 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, use_checkpoin
     t_r = pot.getTransmissionFunction(tem)
     postprocess = init_postprocess(postprocess)
 
-    params = tem.asdict(len(jax.devices()))
+    devices = jax.devices()
+
+    params, padded, data_safe = tem.asdict(len(devices), data=data)
     calc_phi = single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
+
+    if mesh is None:
+        axis_name = 'i'
+        mesh = jax.sharding.Mesh(devices, (axis_name,))
+    else:
+        axis_name = mesh.axis_names[0]
 
     init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=t_r.dtype)
     @jax.jit
     @checkpoint
-    def local_dev(x, t_r):
-        init_varying = jax.lax.pcast(init, "i", to="varying")
-        def _post(carry, param):
-            phi = calc_phi(param, t_r)
-            post = postprocess(phi)
-            carry += post
-            return carry, None if sum else post
+    def local_dev(x, padded, data, t_r):
+        if hasattr(jax.lax, "pcast"):
+            init_varying = jax.lax.pcast(init, axis_name, to="varying")
+        else:
+            init_varying = jnp.zeros((1 if isinstance(probe, str) else len(probe), sp.N[0], sp.N[1]), dtype=t_r.dtype)
 
-        summed, all = jax.lax.scan(_post, init_varying, x)
+        def _post(carry, input):
+            if len(input) == 3:
+                param, padded, data = input
+            else:
+                param, padded = input
+                data = None
+            phi = calc_phi(param, t_r)
+            phi = jnp.sum(phi, axis=0)
+            if len(inspect.signature(postprocess).parameters) == 2:
+                post = postprocess(phi, data)
+            else:
+                post = postprocess(phi)
+
+            return jnp.where(padded, carry, carry + post), None if sum else post
+
+        if data is None:
+            summed, all = jax.lax.scan(_post, init_varying, (x, padded))
+        else:
+            summed, all = jax.lax.scan(_post, init_varying, (x, padded, data))
+
         if sum:
-            return jax.lax.psum(summed, "i")
+            return jax.lax.psum(summed, axis_name)
         else:
             return all
 
-    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = shard_map(local_dev,
-            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=(P('i'), P()), out_specs= P(None,None,None) if sum else P('i',None,None,None))
+    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem.
+    calc = shard_map(local_dev, mesh=mesh,
+            in_specs=(P(axis_name), P(axis_name), P(axis_name) if data is not None else P(), P()), out_specs= P(None,None,None) if sum else P(axis_name,None,None,None), check_rep=False)
 
     # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params, t_r))    # (nparams, nprobe, Nx, Ny)
+    phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, nprobe, Nx, Ny)
+    if not sum:
+        phi = phi[:len(tem.params)]
 
-    if jnp.all(jnp.imag(phi) == 0):
-        phi = phi.real
-    return phi
+    return phi.squeeze()
 
-# future work
-# probeのmodeもsumを取ったほうが良さそう
-# dataも渡せるようにする
-# cpuの場合は、t_rをデバイスにコピーするようになっている。修正できるか？
-# t_rのスライスをメモリに同時に乗せないようにできればするとよい
 
 def init_postprocess(post):
     if post is None:
@@ -67,6 +89,8 @@ def init_postprocess(post):
         return lambda x: jnp.abs(x)**2
     elif post == "diffraction":
         return lambda x: jnp.abs(jnp.fft.fft2(x))**2
+    else:
+        return post
 
 
 def single_func(pot, probe, use_checkpoint=False):
