@@ -8,10 +8,11 @@ from lys_mat import CrystalStructure, Atom
 from lys_em import TEM, TEMParameter, FunctionSpace  # , calcSADiffraction, calcPrecessionDiffraction
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
-from lys_em.multislice import getPropagationTerm, multislice
-from lys_em.functions import diffraction
+from lys_em.multislice import getPropagationTerm, multislice, getChi
+from lys_em.functions import diffraction, make_mesh
 from lys_em.potentials.crystalPotential import CrystalPotential
 
+jax.config.update("jax_enable_x64", True)
 
 class MultiSlice_test(unittest.TestCase):
     path = "test/DataFiles"
@@ -39,7 +40,7 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace(a, a, a, Nz=10)
         tem = TEM(60e3)
         spdict = sp.asdict()
-        temdict = tem.asdict(len(jax.devices()))
+        temdict, _, _ = tem.asdict(len(jax.devices()))
         temdict = {key: item[0] for key, item in temdict.items()}
 
         phi = np.zeros((128, 128), dtype=np.complex64)
@@ -92,31 +93,56 @@ class MultiSlice_test(unittest.TestCase):
 
     def test_PED(self):
         # Compare result with pre-calculated results at 2025/9/12.
-        sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=50, division=1)
+        sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=20, division=1)
         pot = CrystalPotential(sp, self.Au)
-        tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 360)])
+        tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 60)])
         res = diffraction(multislice(pot, tem)).sum(axis=0)
+#        np.save(self.path + "/Au_PED.npy", res)
         ans = np.load(self.path + "/Au_PED.npy")
         assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
 
+    def test_data(self):
+        # Compare result with pre-calculated results at 2025/9/12.
+        sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=10, division=1)
+        pot = CrystalPotential(sp, self.Au)
+        tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 30)])
+        data = np.load(self.path + "/Au_PED_for_using_data.npy")
+
+        res = multislice(pot, tem, sum=True, postprocess="diffraction")
+        assert_allclose(res, data.sum(axis=0), atol=1e-6, rtol=1e-6)
+
+        res = multislice(pot, tem, sum=True, postprocess=lambda phi, dat: jnp.abs(diffraction(phi)-dat), data=data)/(data.sum(axis=0)+1e-10)
+        assert_allclose(res, 0, atol=1e-5)
+
     def test_grad(self):
 
-        TiO2 = CrystalStructure.loadFrom(self.path + "/TiO2_rutile.cif")
-        crys = TiO2.createParametrizedCrystal(cell=False)
+        Cs = 1e10*1e-6
+        defocus = 1e10*1e-6
+        crys = CrystalStructure.loadFrom(self.path + "/TiO2_rutile.cif")
         sp = FunctionSpace.fromCrystal(crys, Nx=128, Ny=128, ncells=30, division=1)
         pot = CrystalPotential(sp, crys)
-        tem = TEM(200e3, params=[TEMParameter(tilt=[2, 0], defocus=0.1)])
+        tem = TEM(200e3, Cs = 1e10*1e-6, params=[TEMParameter(tilt=[0., 0], defocus=1e10*1e-6)])
+
+        ref = diffraction(multislice(pot, tem)).real
 
         def calc_intensity(y_O4, Cs, theta, defocus):
-            pot_subs = pot.replace(params={"y_O4": y_O4})
+            # pot_subs = pot.replace(params={"y_O4": y_O4})
             tem_subs = tem.replace(Cs=Cs, params=[TEMParameter(tilt=[theta, 0], defocus=defocus)])
-            return diffraction(multislice(pot_subs, tem_subs)).sum(axis=0)
+            return diffraction(multislice(pot, tem_subs)).real
 
         def func_for_grad(values):
-            return calc_intensity(*values).sum()
+            return jnp.sum((ref - calc_intensity(*values))**2)/jnp.sum(ref**2)
 
         grad = jax.grad(func_for_grad)
-        print(jnp.array(grad([1.95, 0.1, 1.5, 0.1])))   #[-2.888e-02  5.261e-10 -1.283e-03  1.292e-05]
+        print(jnp.array(func_for_grad([1.9505, Cs*1000, 0., defocus*10])))
+        print(jnp.array(grad([1.9505, Cs*1000, 0., defocus*10])))   #[-2.888e-02  5.261e-10 -1.283e-03  1.292e-05] ?
+
+    def test_mesh(self):
+        sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=10, division=1)
+        pot = CrystalPotential(sp, self.Au)
+        tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 30)])
+        mesh = jax.sharding.Mesh(jax.devices(), ('j',))
+        res = multislice(pot, tem, mesh=mesh)
 
 
 class CrystalPotential_test(unittest.TestCase):
