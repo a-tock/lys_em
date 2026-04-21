@@ -181,7 +181,7 @@ class TEM(object):
         obj._parameters = None
         return obj
 
-    def asdict(self, n_devices):
+    def asdict(self, n_devices, data=None):
         num = len(self.params)
 
         q, r = num // n_devices, num % n_devices
@@ -191,19 +191,18 @@ class TEM(object):
         res = {"wavelength": jnp.repeat(jnp.array(self.wavelength), num),
                "Cs": jnp.repeat(jnp.array(self.Cs), num),
                "k_max": jnp.repeat(jnp.array(self.k_max), num),
-                # "Cs": jnp.array([self.Cs]*num),
-                # "k_max": jnp.array([self.k_max]*num),
                 "tilt": self.tilt,
                 "defocus": self.defocus,
                 "position": self.position}
-        
-        idx = jnp.arange(total)
-        # num以上のインデックスをすべて0に置き換える
-        safe_idx = jnp.where(idx < num, idx, 0)
 
-        # jnp.take を使うと、指定したインデックスに沿って一気に配列を再構成できます
-        return {key: jnp.take(val, safe_idx, axis=0) for key, val in res.items()}
-        # return {key: jnp.array([value[i] if i < num else value[0] for i in range(total)]) for key, value in res.items()}
+        idx = jnp.arange(total)
+        safe_idx = jnp.where(idx < num, idx, 0)
+        padded = jnp.where(idx < num, False, True)
+
+        params = {key: jnp.take(val, safe_idx, axis=0) for key, val in res.items()}
+        data_safe = None if data is None else jnp.take(data, safe_idx, axis=0)
+
+        return params, padded, data_safe
 
 
 @register_pytree_node_class
