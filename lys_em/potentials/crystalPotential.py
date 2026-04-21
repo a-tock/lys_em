@@ -83,7 +83,8 @@ class CrystalPotential(PotentialInterface):
 
         kd = self.space.kvec.dot(self._crys.unit[2][0:2])  # (Nx, Ny)
         f = jax.vmap(jax.vmap(_calcPhase, in_axes=(0, None, None, None)), in_axes=(None, None, None, 0))
-        return f(V_ks, self.space.mask, kd, n).reshape(-1, *self.space.N[0:2]) / self.space.dV  # (ncells*division, Nx, Ny)
+        res = f(V_ks, self.space.mask, kd, n).reshape(-1, *self.space.N[0:2]) / self.space.dV  # (ncells*division, Nx, Ny)
+        return res.real
 
     def getSlicePotential(self, crys):
         """

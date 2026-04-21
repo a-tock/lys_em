@@ -45,4 +45,4 @@ class MagneticPotential(PotentialInterface):
         k = self._sp.kvec
         const = 1j * np.pi * mu_0 * self._sp.dz / (h / e)
         V_k = const * (mx * k[:, :, 1] - my * k[:, :, 0]) / (jnp.linalg.norm(k, axis=2)**2 + eps)
-        return jnp.fft.ifft2(V_k * 1e-20 / self._sp.dV * self._sp.mask)
+        return jnp.fft.ifft2(V_k * 1e-20 / self._sp.dV * self._sp.mask).real
