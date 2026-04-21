@@ -10,7 +10,7 @@ if hasattr(jax, 'shard_map'):
 else:
     from jax.experimental.shard_map import shard_map
 
-def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, use_checkpoint=False, mesh=None):
+def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, use_checkpoint=False, mesh=None):
     """
     Calculate the multislice simulation.
 
@@ -25,12 +25,12 @@ def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, us
     """
     sp = pot.space
     t_r = pot.getTransmissionFunction(tem)
-    postprocess = init_postprocess(postprocess)
+    postprocess = _init_postprocess(postprocess)
 
     devices = jax.devices()
 
     params, padded, data_safe = tem.asdict(len(devices), data=data)
-    calc_phi = single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
+    calc_phi = _single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
 
     if mesh is None:
         axis_name = 'i'
@@ -77,14 +77,15 @@ def multislice(pot, tem, probe="TEM", sum=False, postprocess=None, data=None, us
             in_specs=(P(axis_name), P(axis_name), P(axis_name) if data is not None else P(), P()), out_specs= P(None,None) if sum else P(axis_name,None,None))
 
     # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, Nx, Ny)
+    phi = calc(params, padded, data_safe, t_r)    # (nparams, Nx, Ny)
+    # phi = jax.device_get(calc(params, padded, data_safe, t_r))    # (nparams, Nx, Ny)
     if not sum:
         phi = phi[:len(tem.params)]
 
     return phi.squeeze()
 
 
-def init_postprocess(post):
+def _init_postprocess(post):
     if post is None:
         return lambda x: x
     elif post == "square":
@@ -95,7 +96,7 @@ def init_postprocess(post):
         return post
 
 
-def single_func(pot, probe, use_checkpoint=False):
+def _single_func(pot, probe, use_checkpoint=False):
     sp = pot.space.asdict()
     probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
 
