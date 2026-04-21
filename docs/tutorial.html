@@ -21,7 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Introduction" href="tutorial/introduction.html" />
+    <link rel="next" title="Python API" href="api.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
 </head>
 
@@ -47,13 +47,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/introduction.html">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/SAD.html">Simulation of Selected Area Diffraction (SAD) Pattern</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/PED.html">Simulation of Precession Electron Diffraction (PED) Pattern</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/StructureOptimization.html">Crystal Structure Optimization Using PED Patterns</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -84,14 +78,20 @@
              
   <section id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Link to this heading"></a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/introduction.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/SAD.html">Simulation of Selected Area Diffraction (SAD) Pattern</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/PED.html">Simulation of Precession Electron Diffraction (PED) Pattern</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/StructureOptimization.html">Crystal Structure Optimization Using PED Patterns</a></li>
+<p><em>lys_em</em> is a Python library that enables electron diffraction simulations using the multislice method and the analysis of experimental data.
+In the analysis, the use of Sympy objects allows for easy parameter optimization.</p>
+<p>The library mainly relies on the following packages for computation:</p>
+<ul class="simple">
+<li><p>numpy</p></li>
+<li><p>Sympy</p></li>
+<li><p>JAX</p></li>
 </ul>
-</div>
+<p>For simulations and analyses based on crystal structures, the following library is used:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://a-tock.github.io/lys_mat/index.html">lys_mat</a></p></li>
+</ul>
+<p>To understand the features and capabilities of <em>lys_em</em>, you can use <a class="reference external" href="https://jupyter.org/">Jupyter</a>.
+Start Jupyter from the installed lys_em folder, then open the .ipynb files in the /lys_em/examples folder and run the tutorials.</p>
 </section>
 
 
@@ -99,7 +99,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="install.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="tutorial/introduction.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api.html" class="btn btn-neutral float-right" title="Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

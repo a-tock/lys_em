@@ -6,3 +6,5 @@
 docs_src/build/
 .pytest_cache
 build/
+examples/.ipynb_checkpoints/
+lys_em/.ipynb_checkpoints/

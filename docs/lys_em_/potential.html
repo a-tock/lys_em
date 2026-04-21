@@ -187,7 +187,7 @@ real space.</p>
 <dd class="field-even"><p>The phase of the crystal potential.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p>jax.numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -204,7 +204,7 @@ real space.</p>
 <dd class="field-even"><p>The potential of the crystal slice.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
+<dd class="field-odd"><p>jax.numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -259,7 +259,7 @@ real space.</p>
 <dd class="field-even"><p>A 2D array of shape (Nx, Ny) containing the phase shift of the electron beam at each grid point in radians.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
+<dd class="field-odd"><p>jax.numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -285,20 +285,38 @@ real space.</p>
 
 <dl class="py class" id="module-lys_em.potentials.generalPotential">
 <dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.generalPotential.</span></span><span class="sig-name descname"><span class="pre">GeneralPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lys_em.potentials.generalPotential.</span></span><span class="sig-name descname"><span class="pre">GeneralPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isTransFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lys_em.potentials.interface.PotentialInterface" title="lys_em.potentials.interface.PotentialInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PotentialInterface</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential.getPhase">
 <span class="sig-name descname"><span class="pre">getPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential.getPhase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential.getPhase" title="Link to this definition"></a></dt>
-<dd><p>Returns the phase of the potential.</p>
+<dd><p>Calculate the phase of the potential.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The beam object representing the incident electron beam.</p>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object representing the incident electron beam.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A 2D array of shape (Nx, Ny) where each element is
-the phase of the potential at the respective grid point in
-real space.</p>
+<dd class="field-even"><p>The phase of the potential.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>jax.numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential.getTransmissionFunction">
+<span class="sig-name descname"><span class="pre">getTransmissionFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential.getTransmissionFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential.getTransmissionFunction" title="Link to this definition"></a></dt>
+<dd><p>Calculate the transmission function of the potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beam</strong> (<a class="reference internal" href="tem.html#lys_em.tem.TEM" title="lys_em.tem.TEM"><em>TEM</em></a>) – The TEM object representing the incident electron beam.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The transmission function of the potential.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>jax.numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -306,7 +324,19 @@ real space.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lys_em.potentials.generalPotential.GeneralPotential.replace">
 <span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">potential</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lys_em/potentials/generalPotential.html#GeneralPotential.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lys_em.potentials.generalPotential.GeneralPotential.replace" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Return a copy of the GeneralPotential object with the provided potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>potential</strong> (<em>array-like</em>) – The potential to replace the existing potential.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new GeneralPotential object with the provided potential.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#lys_em.potentials.generalPotential.GeneralPotential" title="lys_em.potentials.generalPotential.GeneralPotential">GeneralPotential</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

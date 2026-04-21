@@ -11,7 +11,7 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name="lys_em",
     packages=find_packages(exclude=("test*",)),
-    version="0.1.0",
+    version="0.1.1",
     description="Python code for simulation and analysis of electron microscope images.",
     long_description=long_description,
     long_description_content_type="text/markdown",
