@@ -113,3 +113,8 @@ def expand_in_Bessel(data, K, K_max=100):
     groups = components.reshape(-1, K, h * w).sum(axis=0).reshape(K, h, w)
 
     return np.roll(groups, (-h // 2, -w // 2), axis=(1, 2))
+
+# def make_mesh(devices=None):
+#     if devices is None:
+#         devices = jax.devices()
+#     return jax.sharding.Mesh(devices, ('j',))
