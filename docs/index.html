@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>lys_em documentation &mdash; lys_em  documentation</title>
+  <title>lys_em: JAX-accelerated Electron Microscopy Simulation &mdash; lys_em  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -65,7 +65,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">lys_em documentation</li>
+      <li class="breadcrumb-item active">lys_em: JAX-accelerated Electron Microscopy Simulation</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -75,10 +75,48 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lys-em-documentation">
-<h1>lys_em documentation<a class="headerlink" href="#lys-em-documentation" title="Link to this heading"></a></h1>
-<p><em>lys_em</em> is a python-based library for simulation and analysis of electron microscope images.</p>
-<p>This library is under developement.</p>
+  <section id="lys-em-jax-accelerated-electron-microscopy-simulation">
+<h1>lys_em: JAX-accelerated Electron Microscopy Simulation<a class="headerlink" href="#lys-em-jax-accelerated-electron-microscopy-simulation" title="Link to this heading"></a></h1>
+<p><em>lys_em</em> is an object-oriented Python-based library designed for the high-performance simulation
+and analysis of electron microscopy (EM) images and diffraction patterns.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><cite>lys_em</cite> provides a versatile, object-oriented framework for simulating various EM modalities.
+At its core, the library utilizes the <strong>multislice method</strong> to provide accurate physical modeling of electron-matter interactions.</p>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<p>Source code of <em>lys_em</em> is opened in GitHub (<a class="reference external" href="https://github.com/a-tock/lys_em">https://github.com/a-tock/lys_em</a>).</p>
+<p>To use <em>lys_em</em>, go to <a class="reference internal" href="install.html"><span class="doc">Installation</span></a> and try <a class="reference internal" href="tutorial.html"><span class="doc">Tutorial</span></a>.</p>
+</section>
+<section id="characteristics">
+<h2>Characteristics<a class="headerlink" href="#characteristics" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><dl class="simple">
+<dt><strong>Generalized Object-Oriented Design</strong></dt><dd><p>A modular architecture that allows for intuitive setup of potentials and imaging conditions.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>High-Performance Computing via JAX</strong></dt><dd><p>By leveraging the <cite>JAX</cite> backend, <cite>lys_em</cite> provides:</p>
+<ul>
+<li><p><strong>Speed and Scalability:</strong>
+Computational tasks are highly optimized and can be seamlessly parallelized across CPUs, GPUs, and TPUs.</p></li>
+<li><p><strong>Automatic Differentiation:</strong>
+The simulator is fully differentiable. This enables high-speed, gradient-based optimization using experimental data
+across a wide range of structural and instrumental parameters.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="future-vision">
+<h2>Future Vision<a class="headerlink" href="#future-vision" title="Link to this heading"></a></h2>
+<p>We are actively developing new features to enhance the library’s utility:</p>
+<ul class="simple">
+<li><p><strong>PRISM Algorithm:</strong> Implementation of the PRISM (Position Resolved Iterative Sub-diffraction Microscopy) method for accelerated STEM simulations.</p></li>
+</ul>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
@@ -88,6 +126,7 @@
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
 </div>
+</section>
 </section>
 
 
