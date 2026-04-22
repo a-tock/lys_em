@@ -7,7 +7,6 @@ In the analysis, the use of Sympy objects allows for easy parameter optimization
 The library mainly relies on the following packages for computation:
 
 - numpy
-- Sympy
 - JAX
 
 For simulations and analyses based on crystal structures, the following library is used:
