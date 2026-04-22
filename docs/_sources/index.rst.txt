@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-lys_em: JAX-accelerated Electron Microscopy Simulation
-========================================================
+lys_em: A Differentiable Framework for Electron Microscopy Simulation and Optimization
+=======================================================================================
 
 *lys_em* is an object-oriented Python-based library designed for the high-performance simulation
 and analysis of electron microscopy (EM) images and diffraction patterns.
