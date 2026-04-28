@@ -16,7 +16,7 @@ If you want to install `lys_em` from source, follow the instructions below.
 
 2. Clone lys_em from GitHub (https://github.com/a-tock/lys_em)::
 
-    git clone git@github.com:a-tock/lys_em.git
+    git clone https://github.com/a-tock/lys_em.git
 
 3. Install lys_em by pip. If you want to install lys_em in development mode, add `-e` option after `pip install`::
 
