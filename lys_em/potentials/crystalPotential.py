@@ -56,11 +56,13 @@ class CrystalPotential(PotentialInterface):
         space = FunctionSpace.fromCrystal(crys, self.space.N[0], self.space.N[1], ncells, division=division)
         return CrystalPotential(space, crys, index=self._index)
 
-    def _sliceIndex(self, crys, sp):
+    def _sliceIndex(self, crys, sp, eps=1e-6):
         division = round(crys.unit[2][2] / sp.dz)
         zList = jnp.arange(division + 1) * crys.unit[2][2] / division
         u = jnp.array(crys.unit.T)
         pos = jnp.array([u.dot(at.position) for at in crys.atoms])
+        zList += -eps if jnp.isclose(pos[:,2].min(), 0, atol=eps) else 0
+        zList += eps if jnp.isclose(pos[:,2].max(), crys.unit[2][2], atol=eps) else 0
         return [[j for j, pos in enumerate(pos) if zList[i] <= pos[2] < zList[i + 1]] for i in range(len(zList) - 1)]
 
     def getPhase(self, beam):
