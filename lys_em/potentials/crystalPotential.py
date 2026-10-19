@@ -73,10 +73,6 @@ class CrystalPotential(PotentialInterface):
         Returns:
             jax.numpy.ndarray: The phase of the crystal potential.
         """
-        @jax.jit
-        def _calcPhase(V_k, mask, kd, n):
-            return jnp.fft.ifft2(V_k * jnp.exp(1j * n * kd) * mask)
-
         sig = beam.wavelength * beam.relativisticMass / m
         V_ks = self.getSlicePotential(self._crys) * sig  # (division, Nx, Ny)
         n = jnp.arange(round(self.space.c / self._crys.unit[2][2]))  # (ncells)
@@ -168,3 +164,8 @@ class _Crystal:
     @property
     def unit(self):
         return self._unit
+
+
+@jax.jit
+def _calcPhase(V_k, mask, kd, n):
+    return jnp.fft.ifft2(V_k * jnp.exp(1j * n * kd) * mask)
