@@ -20,6 +20,10 @@ class Slices:
                 Device memory does not depend on Nz.
             "auto": "pinned" if chunk is given and running on GPU, otherwise "device".
         chunk (int): Number of slices copied to device at once.
+            If Nz is not a multiple of chunk, the slices are padded at the end (see nslices).
+
+    Attributes:
+        nslices (int or None): Number of slices if they are padded, otherwise None.
     """
 
     def __init__(self, pot, tem, mode="auto", chunk=None):
@@ -32,6 +36,12 @@ class Slices:
                 mode = "device"
         else:
             self._t_r = pot.getTransmissionFunction(tem)
+        self.nslices = None
+        nz = len(self._t_r)
+        if chunk is not None and chunk < nz and nz % chunk:
+            self.nslices = nz
+            with jax.default_device(jax.devices("cpu")[0] if mode == "pinned" else None):
+                self._t_r = jnp.pad(self._t_r, ((0, chunk - nz % chunk), (0, 0), (0, 0)), constant_values=1)
         self.mode = mode
         mesh = jax.sharding.Mesh(jax.devices(), ('i',))
         self._sharding = jax.sharding.NamedSharding(mesh, P(), memory_kind="pinned_host" if mode == "pinned" else "device")
@@ -52,7 +62,7 @@ class Slices:
         return to_pinned(self._t_r)
 
 
-def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="auto", chunk=None, batch=1, group=None):
+def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="auto", chunk="auto", batch="auto", group="auto"):
     """
     Calculate the multislice simulation.
 
@@ -64,19 +74,22 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
         postprocess (str or None): Applied to the exit wave of each parameter. "square" (default) or None.
         sum (bool): If True, the results of all parameters are summed.
         slices (str): Where the transmission functions are placed ("auto", "device" or "pinned"). See Slices.
-        chunk (int): Number of slices copied to device at once. If given on GPU, device memory does not depend on Nz.
-        batch (int): Number of parameters computed at once on each device.
-        group (int): Number of parameters per device in a single call. Device memory depends on group, not on nparams.
+        chunk (int, None or "auto"): Number of slices copied to device at once. If given on GPU, device memory does not depend on Nz.
+            None places all slices on device. "auto" uses None if they fit in device memory, otherwise 16.
+        batch (int or "auto"): Number of parameters computed at once on each device. "auto" is 16.
+        group (int, None or "auto"): Number of parameters per device in a single call. Device memory depends on group,
+            not on nparams. None is all parameters. "auto" is the same as batch.
 
     Returns:
         phi (numpy.ndarray) : The multislice simulation result.
     """
     sp = pot.space
-    t_r = Slices(pot, tem, slices, chunk)
     ndev = len(jax.devices())
+    chunk, batch, group = _auto_options(sp, chunk, batch, group)
+    t_r = Slices(pot, tem, slices, chunk)
     probe_type = probe if isinstance(probe, str) else None
     probes = probe if probe_type is None else jnp.array([jnp.fft.ifft2(jnp.ones(sp.N[:2]))])
-    calc = _build_calc(probe_type, postprocess, sum, chunk, batch, ndev)
+    calc = _build_calc(probe_type, postprocess, sum, chunk, batch, t_r.nslices, ndev)
 
     # Pad the parameters so that each device has the same number of groups of the same size.
     nparams = len(tem.params)
@@ -94,13 +107,29 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
     return jax.device_get(phi if sum else phi[:nparams])    # (nparams, nprobe, Nx, Ny), or (nprobe, Nx, Ny) if sum
 
 
+def _auto_options(sp, chunk, batch, group):
+    """Default values of chunk, batch and group (see multislice)."""
+    batch = 16 if batch == "auto" else batch
+    group = batch if group == "auto" else group
+    if chunk == "auto":
+        chunk = None
+        stats = jax.devices()[0].memory_stats() if jax.default_backend() == "gpu" else None
+        if stats is not None:
+            # Device memory for all slices is about 12 slices per slice in the backward pass (measured).
+            slice_bytes = sp.N[0] * sp.N[1] * 8
+            free = stats["bytes_limit"] - stats["bytes_in_use"]
+            if 12 * sp.N[2] * slice_bytes > free / 2:
+                chunk = 16
+    return chunk, batch, group
+
+
 @functools.lru_cache
-def _build_calc(probe_type, postprocess, sum, chunk, batch, ndev):
+def _build_calc(probe_type, postprocess, sum, chunk, batch, nslices, ndev):
     """
     Return the jitted function calc(params, t_r, spd, probes) for a group of parameters.
     It is cached so that it is compiled only once for the same options and shapes.
     """
-    prop = make_propagator(chunk=chunk, batch=batch)
+    prop = make_propagator(chunk=chunk, batch=batch, nslices=nslices)
     post = init_postprocess(postprocess)
 
     def local_dev(x, t_r, spd, probes):
