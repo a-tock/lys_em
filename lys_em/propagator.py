@@ -1,13 +1,32 @@
+import math
 import jax
 import jax.numpy as jnp
 
 Host, Dev = jax.memory.Space.Host, jax.memory.Space.Device
 
 
+def _pvary(x, axes):
+    if not axes:
+        return x
+    if hasattr(jax.lax, "pcast"):
+        return jax.lax.pcast(x, axes, to="varying")
+    return jax.lax.pvary(x, axes)
+
+
 def _propagate(phi, t, Pk):
-    """Propagate phi of one parameter (nprobe, Nx, Ny) through the slices t (nslices, Nx, Ny). Pk: (Nx, Ny)"""
-    step = lambda i, phi: jnp.fft.ifft2(jnp.fft.fft2(phi * t[i]) * Pk)
-    return jax.lax.fori_loop(0, t.shape[0], step, phi)
+    """
+    Propagate phi of one parameter (nprobe, Nx, Ny) through the slices t (nslices, Nx, Ny). Pk: (Nx, Ny)
+    The slices are split into about sqrt(nslices) segments, and each segment is checkpointed, so that
+    the backward pass keeps about 2*sqrt(nslices) wave functions instead of nslices.
+    """
+    def segment(phi, t):
+        return jax.lax.fori_loop(0, t.shape[0], lambda i, phi: jnp.fft.ifft2(jnp.fft.fft2(phi * t[i]) * Pk), phi)
+    n = t.shape[0]
+    size = max(s for s in range(1, math.isqrt(n) + 1) if n % s == 0)
+    if size == 1:
+        return segment(phi, t)
+    segments = t.reshape(n // size, size, *t.shape[1:])
+    return jax.lax.fori_loop(0, n // size, lambda j, phi: jax.checkpoint(segment)(phi, segments[j]), phi)
 
 
 def _propagate_all(phi, t, Pk, batch):
@@ -50,7 +69,7 @@ def make_propagator(chunk=None, batch=1):
     stored on host and the inside of the chunk is recomputed, so that device memory does not depend on Nz.
     The gradient of t_r is also placed on host.
     """
-    size = lambda t_r: len(t_r) if chunk is None else chunk
+    size = lambda t_r: len(t_r) if chunk is None else min(chunk, len(t_r))
 
     @jax.custom_vjp
     def prop(phi0, Pk, t_r):
@@ -64,9 +83,13 @@ def make_propagator(chunk=None, batch=1):
         ck, Pk, t_r = res
         def over_chunk(carry, t, phi):
             dphi, dPk = carry
+            # t is replicated over devices. Make it device-varying here, so that dt is summed over devices
+            # only once per chunk (below), not for each batch inside vjp.
+            axes = tuple(jax.typeof(dphi).vma - jax.typeof(t).vma)
+            t = _pvary(t, axes)
             _, vjp = jax.vjp(lambda phi, t, pk: _propagate_all(phi, t, pk, batch), jax.device_put(phi, Dev), t, Pk)
-            dphi, dt, dpk = vjp(dphi)   # dt is summed over parameters (and devices, since t is replicated)
-            return (dphi, dPk + dpk), jax.device_put(dt, Host)
+            dphi, dt, dpk = vjp(dphi)   # dt is summed over parameters
+            return (dphi, dPk + dpk), jax.device_put(jax.lax.psum(dt, axes), Host)
         (dphi0, dPk), dt = _scan_chunks(over_chunk, (g, jnp.zeros_like(Pk)), t_r, size(t_r), xs=ck, reverse=True)
         return dphi0, dPk, dt.reshape(t_r.shape)
 

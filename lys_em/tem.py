@@ -194,7 +194,7 @@ class TEM(object):
                 "tilt": self.tilt,
                 "defocus": self.defocus,
                 "position": self.position}
-        return {key: jnp.array([value[i] if i < num else value[0] for i in range(total)]) for key, value in res.items()}
+        return {key: jnp.concatenate([jnp.asarray(value), jnp.repeat(jnp.asarray(value)[:1], total - num, axis=0)]) for key, value in res.items()}
 
 
 @register_pytree_node_class

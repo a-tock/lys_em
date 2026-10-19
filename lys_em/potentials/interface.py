@@ -26,11 +26,7 @@ class PotentialInterface:
             the transmission function at the respective grid point in
             real space.
         """
-        @jax.jit
-        def phaseToTrans(phase):
-            return jnp.fft.ifft2(jnp.fft.fft2(jnp.exp(1j * phase)) * self._space.mask)
-
-        return jax.vmap(phaseToTrans)(self.getPhase(beam))
+        return _phaseToTrans(self.getPhase(beam), self._space.mask)
 
     def getPhase(self, beam):
         """
@@ -55,3 +51,8 @@ class PotentialInterface:
             FunctionSpace: The simulation space object containing spatial parameters.
         """
         return self._space
+
+
+@jax.jit
+def _phaseToTrans(phase, mask):
+    return jnp.fft.ifft2(jnp.fft.fft2(jnp.exp(1j * phase)) * mask)

@@ -73,52 +73,69 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
     """
     sp = pot.space
     t_r = Slices(pot, tem, slices, chunk)
-    postprocess = init_postprocess(postprocess)
-    prop = make_propagator(chunk=chunk, batch=batch)
-
     ndev = len(jax.devices())
-    params = tem.asdict(ndev)    # padded to a multiple of ndev
+    probe_type = probe if isinstance(probe, str) else None
+    probes = probe if probe_type is None else jnp.array([jnp.fft.ifft2(jnp.ones(sp.N[:2]))])
+    calc = _build_calc(probe_type, postprocess, sum, chunk, batch, ndev)
+
+    # Pad the parameters so that each device has the same number of groups of the same size.
     nparams = len(tem.params)
-    params["weight"] = (jnp.arange(len(params["tilt"])) < nparams).astype(jnp.float32)    # 0 for padding
+    params = tem.asdict(1)
+    n_local = -(-nparams // ndev)
+    group = n_local if group is None else min(group, n_local)
+    total = ndev * (-(-n_local // group) * group)
+    params = jax.tree.map(lambda v: jnp.concatenate([v, jnp.repeat(v[:1], total - nparams, axis=0)]), params)
+    params["weight"] = (jnp.arange(total) < nparams).astype(jnp.float32)    # 0 for padding
+
     spd = sp.asdict()
-    probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(sp.N[:2]))])
-
-    def local_dev(x, t_args):
-        phi0 = jax.vmap(lambda p: getWaveFunction(spd, p, probes))(x)     # (nparams, nprobe, Nx, Ny)
-        Pk = jax.vmap(lambda p: getPropagationTerm(spd, p))(x)            # (nparams, Nx, Ny)
-        phi = prop(phi0, Pk, t_args)
-        if probe == "TEM":
-            aberration = lambda phi, p: jnp.fft.ifft2(jnp.fft.fft2(phi) * getAberrationFunction(spd, p) * spd["mask"])
-            phi = jax.vmap(aberration)(phi, x)
-        post = postprocess(phi)
-        if sum:
-            return jax.lax.psum(jnp.tensordot(x["weight"], post, axes=1), "i")    # padding is excluded
-        return post
-
-    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem.
-    calc = jax.jit(jax.checkpoint(shard_map(local_dev,
-            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=(P('i'), P()), out_specs= P(None,None,None) if sum else P('i',None,None,None))))
-
     def calc_group(p):
-        return calc(p, t_r.place())     # place() for each group, so that the gradient of t_r is summed on CPU
+        return calc(p, t_r.place(), spd, probes)     # place() for each group, so that the gradient of t_r is summed on CPU
     phi = _map_groups(calc_group, params, ndev, group, sum)
     return jax.device_get(phi if sum else phi[:nparams])    # (nparams, nprobe, Nx, Ny), or (nprobe, Nx, Ny) if sum
 
 
+@functools.lru_cache
+def _build_calc(probe_type, postprocess, sum, chunk, batch, ndev):
+    """
+    Return the jitted function calc(params, t_r, spd, probes) for a group of parameters.
+    It is cached so that it is compiled only once for the same options and shapes.
+    """
+    prop = make_propagator(chunk=chunk, batch=batch)
+    post = init_postprocess(postprocess)
+
+    def local_dev(x, t_r, spd, probes):
+        phi0 = jax.vmap(lambda p: getWaveFunction(spd, p, probes))(x)     # (nparams, nprobe, Nx, Ny)
+        Pk = jax.vmap(lambda p: getPropagationTerm(spd, p))(x)            # (nparams, Nx, Ny)
+        phi = prop(phi0, Pk, t_r)
+        if probe_type == "TEM":
+            aberration = lambda phi, p: jnp.fft.ifft2(jnp.fft.fft2(phi) * getAberrationFunction(spd, p) * spd["mask"])
+            phi = jax.vmap(aberration)(phi, x)
+        res = post(phi)
+        if sum:
+            return jax.lax.psum(jnp.tensordot(x["weight"], res, axes=1), "i")    # padding is excluded
+        return res
+
+    # Parallelization: parameters are distributed to the devices.
+    mesh = jax.sharding.Mesh(jax.devices()[:ndev], ('i',))
+    out_specs = P(None, None, None) if sum else P('i', None, None, None)
+    return jax.jit(jax.checkpoint(shard_map(local_dev, mesh=mesh, in_specs=(P('i'), P(), P(), P()), out_specs=out_specs)))
+
+
 def _map_groups(f, params, ndev, group, sum):
     """
-    Apply f to the parameters, `group` parameters per device at a time (all at once if group is None).
-    params are sharded device-major (ndev * n_local). Device memory depends on group, not on nparams.
-    The results are summed (sum=True) or concatenated in the original order.
+    Apply f to the parameters, `group` parameters per device at a time.
+    params are sharded device-major (ndev * n_local), where n_local is a multiple of group.
+    Device memory depends on group, not on nparams.
+    The results are summed (sum=True) or concatenated in the original order on CPU (sum=False).
     """
     n_local = len(jax.tree.leaves(params)[0]) // ndev
-    group = n_local if group is None else group
     local = jax.tree.map(lambda v: v.reshape(ndev, n_local, *v.shape[1:]), params)
+    cpu = jax.sharding.SingleDeviceSharding(jax.devices("cpu")[0])
     res = []
     for start in range(0, n_local, group):
         p = jax.tree.map(lambda v: v[:, start:start + group].reshape(-1, *v.shape[2:]), local)
         r = f(p)
-        res.append(r if sum else r.reshape(ndev, -1, *r.shape[1:]))
+        res.append(r if sum else jax.device_put(r, cpu).reshape(ndev, group, *r.shape[1:]))   # only one group stays on device
     if sum:
         return functools.reduce(jnp.add, res)
     return jnp.concatenate(res, axis=1).reshape(ndev * n_local, *res[0].shape[2:])
