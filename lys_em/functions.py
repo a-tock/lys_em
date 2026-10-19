@@ -10,18 +10,23 @@ from scipy.special import j0, jn_zeros
 from . import TEM, TEMParameter, FunctionSpace, CrystalPotential, multislice, GeneralPotential
 
 
+def _waves(pot, tem):
+    """Exit waves of all parameters for a plane-wave (TEM) probe, (nparams, Nx, Ny)"""
+    return multislice(pot, tem, postprocess=None)[:, 0]
+
+
 def calcSADiffraction(V, crys, numOfCells, Nx=128, Ny=128, division="Auto", tilt=[0, 0]):
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     pot = CrystalPotential(sp, crys)
     tem = TEM(V, params=TEMParameter(tilt=tilt))
-    return diffraction(multislice(pot, tem))
+    return diffraction(_waves(pot, tem)[0])
 
 
 def calcPrecessionDiffraction(V, crys, numOfCells, theta, nphi, Nx=128, Ny=128, division="Auto"):
     sp = FunctionSpace.fromCrystal(crys, Nx, Ny, numOfCells, division=division)
     pot = CrystalPotential(sp, crys)
     tem = TEM(V, params=[TEMParameter(tilt=[theta, phi]) for phi in np.arange(0, 360, 360 / nphi)])
-    return diffraction(multislice(pot, tem)).sum(axis=0)
+    return diffraction(_waves(pot, tem)).sum(axis=0)
 
 
 def calcCBED(V, convergence, crys, numOfCells, ndisk=30, Nx=128, Ny=128, division="Auto", sum=True):
@@ -32,7 +37,7 @@ def calcCBED(V, convergence, crys, numOfCells, ndisk=30, Nx=128, Ny=128, divisio
     c = np.arange(-convergence, convergence, 2 * convergence / ndisk)
     tem = TEM(V, params=[TEMParameter(tilt=[tx, ty]) for tx, ty in itertools.product(c, c)])
 
-    res = abs(np.fft.fft2(multislice(pot, tem), axes=(1, 2)))**2
+    res = abs(np.fft.fft2(_waves(pot, tem), axes=(1, 2)))**2
     res.reshape(ndisk, ndisk, Nx, Ny)
     return res
 
@@ -44,7 +49,7 @@ def calc4DSTEM_Crystal(V, convergence, crys, numOfCells, Nx=256, Ny=256, divisio
     c, r = np.arange(0, crys.a, crys.a / scanx), np.arange(0, crys.b, crys.b / scany)
     tem = TEM(V, convergence=convergence, params=[TEMParameter(beamPosition=[x, y]) for x, y in itertools.product(c, r)])
 
-    res = abs(np.fft.fft2(multislice(pot, tem), axes=(1, 2)))**2
+    res = abs(np.fft.fft2(_waves(pot, tem), axes=(1, 2)))**2
     res.reshape(scanx, scany, Nx, Ny)
     return res
 

@@ -77,7 +77,9 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
     prop = make_propagator(chunk=chunk, batch=batch)
 
     ndev = len(jax.devices())
-    params = tem.asdict(ndev)
+    params = tem.asdict(ndev)    # padded to a multiple of ndev
+    nparams = len(tem.params)
+    params["weight"] = (jnp.arange(len(params["tilt"])) < nparams).astype(jnp.float32)    # 0 for padding
     spd = sp.asdict()
     probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(sp.N[:2]))])
 
@@ -89,7 +91,9 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
             aberration = lambda phi, p: jnp.fft.ifft2(jnp.fft.fft2(phi) * getAberrationFunction(spd, p) * spd["mask"])
             phi = jax.vmap(aberration)(phi, x)
         post = postprocess(phi)
-        return jax.lax.psum(post.sum(axis=0), "i") if sum else post
+        if sum:
+            return jax.lax.psum(jnp.tensordot(x["weight"], post, axes=1), "i")    # padding is excluded
+        return post
 
     # Parallelization: "calc" function perform multislice calculation for list of parameters in tem.
     calc = jax.jit(jax.checkpoint(shard_map(local_dev,
@@ -97,7 +101,8 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="a
 
     def calc_group(p):
         return calc(p, t_r.place())     # place() for each group, so that the gradient of t_r is summed on CPU
-    return jax.device_get(_map_groups(calc_group, params, ndev, group, sum))    # (nparams, nprobe, Nx, Ny)
+    phi = _map_groups(calc_group, params, ndev, group, sum)
+    return jax.device_get(phi if sum else phi[:nparams])    # (nparams, nprobe, Nx, Ny), or (nprobe, Nx, Ny) if sum
 
 
 def _map_groups(f, params, ndev, group, sum):

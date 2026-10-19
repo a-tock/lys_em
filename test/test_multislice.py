@@ -9,7 +9,7 @@ from lys_em import TEM, TEMParameter, FunctionSpace  # , calcSADiffraction, calc
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import getPropagationTerm, multislice
-from lys_em.functions import diffraction
+from lys_em.functions import diffraction, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.potentials.crystalPotential import CrystalPotential
 
 
@@ -130,6 +130,31 @@ class MultiSliceMemory_test(unittest.TestCase):
         ref = jax.grad(loss)(0.15)
         for opt in self.options:
             assert_allclose(jax.grad(lambda v: loss(v, **opt))(0.15), ref, rtol=1e-4, err_msg=str(opt))
+
+    def test_padding(self):
+        # nparams is not a multiple of the number of devices: padded parameters must not appear in the results.
+        pot = self.pot.replace(params={self.sym: 0.15})
+        tem = TEM(60e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 7)])
+        for opt in [dict(), dict(group=1), dict(slices="pinned", chunk=5)]:
+            each = multislice(pot, tem, **opt)
+            self.assertEqual(len(each), 7)
+            assert_allclose(multislice(pot, tem, sum=True, **opt), each.sum(axis=0), rtol=1e-4, atol=1e-6 * np.abs(each).max(), err_msg=str(opt))
+
+
+class Functions_test(unittest.TestCase):
+    path = "test/DataFiles"
+
+    def test_calcSADiffraction(self):
+        Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
+        res = calcSADiffraction(60e3, Au, 10, Nx=128, Ny=128)
+        test = abs(np.fft.fft2(np.load(self.path + "/Au.npy")))**2
+        assert_array_almost_equal(res / res[0][0], test / test[0][0])
+
+    def test_calcPrecessionDiffraction(self):
+        Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
+        res = calcPrecessionDiffraction(200e3, Au, 50, 2, 360, Nx=128, Ny=128, division=1)
+        ans = np.load(self.path + "/Au_PED.npy")
+        assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
 
 
 class CrystalPotential_test(unittest.TestCase):
