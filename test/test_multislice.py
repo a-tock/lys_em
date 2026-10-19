@@ -13,6 +13,11 @@ from lys_em.functions import diffraction
 from lys_em.potentials.crystalPotential import CrystalPotential
 
 
+def wave(pot, tem):
+    """Exit waves of all parameters, (nparams, Nx, Ny)"""
+    return multislice(pot, tem, postprocess=None)[:len(tem.params), 0]
+
+
 class MultiSlice_test(unittest.TestCase):
     path = "test/DataFiles"
 
@@ -41,7 +46,7 @@ class MultiSlice_test(unittest.TestCase):
 
         phi = np.zeros((128, 128), dtype=np.complex64)
         phi[0, 0] = 1
-        P_k = np.array(getPropagationTerm(sp, tem)[0])
+        P_k = np.array(getPropagationTerm(sp.asdict(), jax.tree.map(lambda v: v[0], tem.asdict(1))))
 
         # compared with theoretical solution (propagation after a in free space)
         for i in range(10):
@@ -55,7 +60,7 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=10)
         pot = CrystalPotential(sp, self.Au)
         tem = TEM(60e3)
-        res = diffraction(multislice(pot, tem))
+        res = diffraction(wave(pot, tem)[0])
         test = abs(np.fft.fft2(np.load(self.path + "/Au.npy")))**2
         assert_array_almost_equal(res / res[0][0], test / test[0][0])
 
@@ -63,7 +68,7 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace.fromCrystal(TaTe2, Nx=512, Ny=256, ncells=90)
         pot = CrystalPotential(sp, TaTe2)
         tem = TEM(0.75e6, params=TEMParameter(tilt=[-0.80437, 0]))
-        res = diffraction(multislice(pot, tem))
+        res = diffraction(wave(pot, tem)[0])
 #        res = calcSADiffraction(0.75e6, TaTe2, 90, Nx=512, Ny=256, tilt=[-0.80437, 0])
         res = jnp.sqrt(res)[:13, 0]
         ans = np.array([0.5577267344048619, 0, 0.002756932398382368, 0, 0.010163465792031692, 0, 0.11391665208304297, 0, 0.0031967300829784428, 0, 0.0024738436644140016, 0, 0.21191082484442536])
@@ -79,11 +84,11 @@ class MultiSlice_test(unittest.TestCase):
 
         sp_ortho = FunctionSpace.fromCrystal(self.VTe2_ortho, Nx=216, Ny=216, ncells=50, division=1)
         pot_ortho = CrystalPotential(sp_ortho, self.VTe2_ortho)
-        calc_ortho = diffraction(multislice(pot_ortho, tem))
+        calc_ortho = diffraction(wave(pot_ortho, tem)[0])
 
         sp_trigonal = FunctionSpace.fromCrystal(self.VTe2_trigonal, Nx=216, Ny=216, ncells=50, division=1)
         pot_trigonal = CrystalPotential(sp_trigonal, self.VTe2_trigonal)
-        calc_trigonal = diffraction(multislice(pot_trigonal, tem))
+        calc_trigonal = diffraction(wave(pot_trigonal, tem)[0])
 
         relative_error = np.abs(calc_ortho[1, 1] - calc_trigonal[1, 0]) / np.abs(calc_ortho[1, 1])
         self.assertTrue(np.all(relative_error < 1e-4))
@@ -93,9 +98,38 @@ class MultiSlice_test(unittest.TestCase):
         sp = FunctionSpace.fromCrystal(self.Au, Nx=128, Ny=128, ncells=50, division=1)
         pot = CrystalPotential(sp, self.Au)
         tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 360)])
-        res = diffraction(multislice(pot, tem)).sum(axis=0)
+        res = diffraction(wave(pot, tem)).sum(axis=0)
         ans = np.load(self.path + "/Au_PED.npy")
         assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
+
+
+class MultiSliceMemory_test(unittest.TestCase):
+    """Options for memory and speed (slices, chunk, batch, group) should not change the results."""
+    path = "test/DataFiles"
+    options = [dict(batch=5), dict(batch=4, group=3), dict(slices="pinned", chunk=5), dict(slices="pinned", chunk=2, batch=5, group=3)]
+
+    def setUp(self):
+        crys = CrystalStructure.loadFrom(self.path + "/TiO2.cif").createParametrizedCrystal()
+        self.crys = crys.subs({key: value for key, value in crys.defaultParameters.items() if key != "y_O4"})
+        self.sym = list(self.crys.free_symbols)[0]
+        sp = FunctionSpace.fromCrystal(self.crys, Nx=64, Ny=64, ncells=10)    # Nz = 10
+        self.pot = CrystalPotential(sp, self.crys)    # y_O4 is given by replace
+        self.tem = TEM(60e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 12)])
+
+    def test_value(self):
+        pot = self.pot.replace(params={self.sym: 0.15})
+        for sum in [True, False]:
+            ref = multislice(pot, self.tem, sum=sum)
+            for opt in self.options:
+                assert_allclose(multislice(pot, self.tem, sum=sum, **opt), ref, rtol=1e-4, atol=1e-6 * np.abs(ref).max(), err_msg=str(opt))
+
+    def test_grad(self):
+        def loss(v, **opt):
+            pot = self.pot.replace(params={self.sym: v})
+            return jnp.sum(multislice(pot, self.tem, sum=True, **opt).real ** 2)
+        ref = jax.grad(loss)(0.15)
+        for opt in self.options:
+            assert_allclose(jax.grad(lambda v: loss(v, **opt))(0.15), ref, rtol=1e-4, err_msg=str(opt))
 
 
 class CrystalPotential_test(unittest.TestCase):

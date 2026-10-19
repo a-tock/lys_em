@@ -1,12 +1,58 @@
+import functools
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
-checkpoint = jax.checkpoint if hasattr(jax, 'checkpoint') else jax.ad_checkpoint.checkpoint
+from .propagator import make_propagator
+
 shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
 
 
-def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_checkpoint=False):
+class Slices:
+    """
+    Transmission functions of all slices (Nz, Nx, Ny), and where they are placed.
+
+    Args:
+        pot, tem: The potential and the TEM object.
+        mode (str): "device", "pinned" or "auto".
+            "device": All slices are placed (replicated) on each device. Device memory ~ Nz.
+            "pinned": Slices are placed in pinned host memory and copied to device chunk by chunk.
+                Device memory does not depend on Nz.
+            "auto": "pinned" if chunk is given and running on GPU, otherwise "device".
+        chunk (int): Number of slices copied to device at once.
+    """
+
+    def __init__(self, pot, tem, mode="auto", chunk=None):
+        if mode == "auto":
+            mode = "pinned" if chunk is not None and jax.default_backend() == "gpu" else "device"
+        if mode == "pinned":
+            with jax.default_device(jax.devices("cpu")[0]):
+                self._t_r = pot.getTransmissionFunction(tem)
+            if chunk is None or chunk >= len(self._t_r):   # XLA fails for a single chunk with host offloading
+                mode = "device"
+        else:
+            self._t_r = pot.getTransmissionFunction(tem)
+        self.mode = mode
+        mesh = jax.sharding.Mesh(jax.devices(), ('i',))
+        self._sharding = jax.sharding.NamedSharding(mesh, P(), memory_kind="pinned_host" if mode == "pinned" else "device")
+
+    def place(self):
+        """
+        Return t_r placed (replicated) on all devices, or on their pinned host memory.
+        Called once per parameter group, so that the gradients of the groups are summed where t_r was calculated.
+        """
+        if self.mode != "pinned":
+            return jax.device_put(self._t_r, self._sharding)
+        cpu, sharding = jax.devices("cpu")[0], self._sharding
+
+        @jax.custom_vjp
+        def to_pinned(x):
+            return jax.device_put(x, sharding)
+        to_pinned.defvjp(lambda x: (to_pinned(x), None), lambda _, g: (jax.device_put(g, jax.sharding.SingleDeviceSharding(cpu)),))  # Device object keeps <host> type
+        return to_pinned(self._t_r)
+
+
+def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, slices="auto", chunk=None, batch=1, group=None):
     """
     Calculate the multislice simulation.
 
@@ -15,40 +61,62 @@ def multislice(pot, tem, probe="TEM", postprocess="square", sum=False, use_check
         tem (TEM) : The TEM object.
         probe (str or array) : The probe type or the probe wave function. Probe type can be "TEM" or "STEM".
             The probe wave function should be a 2D array of shape (Nx, Ny). Default is "TEM".
+        postprocess (str or None): Applied to the exit wave of each parameter. "square" (default) or None.
+        sum (bool): If True, the results of all parameters are summed.
+        slices (str): Where the transmission functions are placed ("auto", "device" or "pinned"). See Slices.
+        chunk (int): Number of slices copied to device at once. If given on GPU, device memory does not depend on Nz.
+        batch (int): Number of parameters computed at once on each device.
+        group (int): Number of parameters per device in a single call. Device memory depends on group, not on nparams.
 
     Returns:
         phi (numpy.ndarray) : The multislice simulation result.
     """
     sp = pot.space
-    t_r = pot.getTransmissionFunction(tem)
+    t_r = Slices(pot, tem, slices, chunk)
     postprocess = init_postprocess(postprocess)
+    prop = make_propagator(chunk=chunk, batch=batch)
 
-    params = tem.asdict(len(jax.devices()))
-    calc_phi = single_func(pot, probe, use_checkpoint=use_checkpoint) # calc_phi(param, t_r) -> phi
+    ndev = len(jax.devices())
+    params = tem.asdict(ndev)
+    spd = sp.asdict()
+    probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(sp.N[:2]))])
 
-    init = jnp.zeros((1 if isinstance(probe, str) else len(probe),sp.N[0],sp.N[1]), dtype=jnp.complex64)
-    @jax.jit
-    @checkpoint
-    def local_dev(x, t_r):
-        init_varying = jax.lax.pcast(init, "i", to="varying")
-        def _post(carry, param):
-            phi = calc_phi(param, t_r)
-            post = postprocess(phi)
-            return carry + post, None if sum else post
-        
-        summed, all = jax.lax.scan(_post, init_varying, x)
-        if sum:
-            return jax.lax.psum(summed, "i")
-        else:
-            return all
+    def local_dev(x, t_args):
+        phi0 = jax.vmap(lambda p: getWaveFunction(spd, p, probes))(x)     # (nparams, nprobe, Nx, Ny)
+        Pk = jax.vmap(lambda p: getPropagationTerm(spd, p))(x)            # (nparams, Nx, Ny)
+        phi = prop(phi0, Pk, t_args)
+        if probe == "TEM":
+            aberration = lambda phi, p: jnp.fft.ifft2(jnp.fft.fft2(phi) * getAberrationFunction(spd, p) * spd["mask"])
+            phi = jax.vmap(aberration)(phi, x)
+        post = postprocess(phi)
+        return jax.lax.psum(post.sum(axis=0), "i") if sum else post
 
-    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem. 
-    calc = shard_map(local_dev,
-            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=(P('i'), P()), out_specs= P(None,None,None) if sum else P('i',None,None,None))
+    # Parallelization: "calc" function perform multislice calculation for list of parameters in tem.
+    calc = jax.jit(jax.checkpoint(shard_map(local_dev,
+            mesh=jax.sharding.Mesh(jax.devices(), ('i',)), in_specs=(P('i'), P()), out_specs= P(None,None,None) if sum else P('i',None,None,None))))
 
-    # Move to main, remove padding and unnecessary axis
-    phi = jax.device_get(calc(params, t_r))    # (nparams, nprobe, Nx, Ny)
-    return phi
+    def calc_group(p):
+        return calc(p, t_r.place())     # place() for each group, so that the gradient of t_r is summed on CPU
+    return jax.device_get(_map_groups(calc_group, params, ndev, group, sum))    # (nparams, nprobe, Nx, Ny)
+
+
+def _map_groups(f, params, ndev, group, sum):
+    """
+    Apply f to the parameters, `group` parameters per device at a time (all at once if group is None).
+    params are sharded device-major (ndev * n_local). Device memory depends on group, not on nparams.
+    The results are summed (sum=True) or concatenated in the original order.
+    """
+    n_local = len(jax.tree.leaves(params)[0]) // ndev
+    group = n_local if group is None else group
+    local = jax.tree.map(lambda v: v.reshape(ndev, n_local, *v.shape[1:]), params)
+    res = []
+    for start in range(0, n_local, group):
+        p = jax.tree.map(lambda v: v[:, start:start + group].reshape(-1, *v.shape[2:]), local)
+        r = f(p)
+        res.append(r if sum else r.reshape(ndev, -1, *r.shape[1:]))
+    if sum:
+        return functools.reduce(jnp.add, res)
+    return jnp.concatenate(res, axis=1).reshape(ndev * n_local, *res[0].shape[2:])
 
 
 def init_postprocess(post):
@@ -56,33 +124,6 @@ def init_postprocess(post):
         return lambda x: x
     elif post == "square":
         return lambda x: abs(x)**2
-
-
-def single_func(pot, probe, use_checkpoint=False):
-    sp = pot.space.asdict()
-    probes = probe if not isinstance(probe, str) else jnp.array([jnp.fft.ifft2(jnp.ones(pot.space.N[:2]))])
-
-    @jax.jit
-    def run_single_param(phi, sp, tem, t_r):
-        P_k = getPropagationTerm(sp, tem) # shape (Nx, Ny)
-        step = lambda i, phi: jnp.fft.ifft2(jnp.fft.fft2(phi * t_r[i]) * P_k)
-        step = checkpoint(step)
-        return jax.lax.fori_loop(0, len(t_r), step, phi)
-    run_single_param = checkpoint(run_single_param) if use_checkpoint else run_single_param
-
-    @jax.jit
-    @checkpoint
-    def _loop(tem_i, t_r):
-        phi = getWaveFunction(sp, tem_i, probes) # shape (nprobe, Nx, Ny)
-        phi = run_single_param(phi,sp, tem_i, t_r)
-
-        # Apply abberration for TEM
-        if probe == "TEM":
-            H = getAberrationFunction(sp, tem_i)  # shape (Nx, Ny)
-            phi = jnp.fft.ifft2(jnp.fft.fft2(phi, axes=(-2,-1)) * H * sp["mask"], axes=(-2,-1))
-        return phi
-
-    return _loop
 
 
 @jax.jit

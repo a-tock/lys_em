@@ -1,3 +1,7 @@
+import jax
+# Matrix products (e.g. kvec.dot) lose accuracy with the default precision (TF32) on GPU, which changes the results and gradients.
+jax.config.update("jax_default_matmul_precision", "highest")
+
 from .tem import TEM, TEMParameter
 from .space import FunctionSpace
 from .scatteringFactor import scatteringFactor
