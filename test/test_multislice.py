@@ -9,7 +9,7 @@ from lys_em import TEM, TEMParameter, FunctionSpace  # , calcSADiffraction, calc
 from lys_em.consts import m, e, h, hbar
 from lys_em.scatteringFactor import projectedPotential
 from lys_em.multislice import getPropagationTerm, multislice, getChi
-from lys_em.functions import diffraction
+from lys_em.functions import diffraction, calcSADiffraction, calcPrecessionDiffraction
 from lys_em.potentials.crystalPotential import CrystalPotential
 
 jax.config.update("jax_enable_x64", True)
@@ -143,6 +143,71 @@ class MultiSlice_test(unittest.TestCase):
         tem = TEM(200e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 30)])
         mesh = jax.sharding.Mesh(jax.devices(), ('j',))
         res = multislice(pot, tem, mesh=mesh)
+
+
+class MultiSliceMemory_test(unittest.TestCase):
+    """Options for memory and speed (slices, chunk, batch, group) should not change the results."""
+    path = "test/DataFiles"
+    options = [dict(batch=5), dict(batch=4, group=3), dict(slices="pinned", chunk=5), dict(slices="pinned", chunk=2, batch=5, group=3)]
+
+    def setUp(self):
+        crys = CrystalStructure.loadFrom(self.path + "/TiO2.cif").createParametrizedCrystal()
+        self.crys = crys.subs({key: value for key, value in crys.defaultParameters.items() if key != "y_O4"})
+        self.sym = list(self.crys.free_symbols)[0]
+        sp = FunctionSpace.fromCrystal(self.crys, Nx=64, Ny=64, ncells=10)    # Nz = 10
+        self.pot = CrystalPotential(sp, self.crys)    # y_O4 is given by replace
+        self.tem = TEM(60e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 12)])
+
+    def test_value(self):
+        pot = self.pot.replace(params={self.sym: 0.15})
+        for sum in [True, False]:
+            ref = multislice(pot, self.tem, sum=sum, postprocess="square")
+            for opt in self.options:
+                assert_allclose(multislice(pot, self.tem, sum=sum, postprocess="square", **opt), ref, rtol=1e-4, atol=1e-6 * np.abs(ref).max(), err_msg=str(opt))
+
+    def test_grad(self):
+        def loss(v, **opt):
+            pot = self.pot.replace(params={self.sym: v})
+            return jnp.sum(multislice(pot, self.tem, sum=True, postprocess="square", **opt) ** 2)
+        ref = jax.grad(loss)(0.15)
+        for opt in self.options:
+            assert_allclose(jax.grad(lambda v: loss(v, **opt))(0.15), ref, rtol=1e-4, err_msg=str(opt))
+
+    def test_padding(self):
+        # nparams is not a multiple of the number of devices: padded parameters must not appear in the results.
+        pot = self.pot.replace(params={self.sym: 0.15})
+        tem = TEM(60e3, params=[TEMParameter(tilt=[2, phi]) for phi in np.arange(0, 360, 360 / 7)])
+        for opt in [dict(), dict(group=1), dict(slices="pinned", chunk=5)]:
+            each = multislice(pot, tem, postprocess="square", **opt)
+            self.assertEqual(len(each), 7)
+            assert_allclose(multislice(pot, tem, sum=True, postprocess="square", **opt), each.sum(axis=0), rtol=1e-4, atol=1e-6 * np.abs(each).max(), err_msg=str(opt))
+
+
+    def test_data(self):
+        # postprocess with data
+        pot = self.pot.replace(params={self.sym: 0.15})
+        data = np.asarray(multislice(pot, self.tem, postprocess="diffraction"))
+        post = lambda phi, dat: jnp.abs(jnp.abs(jnp.fft.fft2(phi))**2 - dat)
+        for opt in [dict()] + self.options:
+            res = multislice(pot, self.tem, sum=True, postprocess=post, data=data, **opt)
+            assert_allclose(res, 0, atol=1e-4 * data.max(), err_msg=str(opt))
+
+
+class Functions_test(unittest.TestCase):
+    path = "test/DataFiles"
+
+    def test_calcSADiffraction(self):
+        Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
+        res = calcSADiffraction(60e3, Au, 10, Nx=128, Ny=128)
+        test = abs(np.fft.fft2(np.load(self.path + "/Au.npy")))**2
+        assert_array_almost_equal(res / res[0][0], test / test[0][0])
+
+    def test_calcPrecessionDiffraction(self):
+        Au = CrystalStructure.loadFrom(self.path + "/Au.cif")
+        res = calcPrecessionDiffraction(200e3, Au, 20, 2, 60, Nx=128, Ny=128, division=1)
+        ans = np.load(self.path + "/Au_PED.npy")
+        assert_array_almost_equal(res / res[0][0], ans / ans[0][0], decimal=4)
+
 
 
 class CrystalPotential_test(unittest.TestCase):
