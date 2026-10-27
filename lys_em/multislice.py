@@ -1,12 +1,18 @@
 import functools
 import inspect
+import warnings
 import jax
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
-from .propagator import make_propagator
+from .propagator import make_propagator, HOST_OFFLOAD
 
-shard_map = jax.shard_map if hasattr(jax, 'shard_map') else jax.experimental.shard_map.shard_map
+if hasattr(jax, 'shard_map'):
+    shard_map = jax.shard_map
+else:
+    # The replication check of old JAX fails for the gradient of jax.lax.scan inside shard_map.
+    from jax.experimental.shard_map import shard_map as _shard_map
+    shard_map = functools.partial(_shard_map, check_rep=False)
 
 
 class Slices:
@@ -20,7 +26,8 @@ class Slices:
             "device": All slices are placed (replicated) on each device. Device memory ~ Nz.
             "pinned": Slices are placed in pinned host memory and copied to device chunk by chunk.
                 Device memory does not depend on Nz.
-            "auto": "pinned" if chunk is given and running on GPU, otherwise "device".
+            "auto": "pinned" if chunk is given, running on GPU and JAX >= 0.7.1, otherwise "device".
+            "pinned" requires JAX >= 0.7.1. In older versions, "device" is used instead.
         chunk (int): Number of slices copied to device at once.
             If Nz is not a multiple of chunk, the slices are padded at the end (see nslices).
 
@@ -30,7 +37,10 @@ class Slices:
 
     def __init__(self, pot, tem, mode="auto", chunk=None, mesh=None):
         if mode == "auto":
-            mode = "pinned" if chunk is not None and jax.default_backend() == "gpu" else "device"
+            mode = "pinned" if chunk is not None and jax.default_backend() == "gpu" and HOST_OFFLOAD else "device"
+        if mode == "pinned" and not HOST_OFFLOAD:
+            warnings.warn("slices='pinned' requires JAX >= 0.7.1. All slices are placed on device.")
+            mode = "device"
         if mode == "pinned":
             with jax.default_device(jax.devices("cpu")[0]):
                 self._t_r = pot.getTransmissionFunction(tem)
@@ -46,7 +56,7 @@ class Slices:
                 self._t_r = jnp.pad(self._t_r, ((0, chunk - nz % chunk), (0, 0), (0, 0)), constant_values=1)
         self.mode = mode
         mesh = jax.sharding.Mesh(jax.devices(), ('i',)) if mesh is None else mesh
-        self._sharding = jax.sharding.NamedSharding(mesh, P(), memory_kind="pinned_host" if mode == "pinned" else "device")
+        self._sharding = jax.sharding.NamedSharding(mesh, P(), memory_kind="pinned_host") if mode == "pinned" else jax.sharding.NamedSharding(mesh, P())
 
     def place(self):
         """
@@ -110,7 +120,7 @@ def multislice(pot, tem, probe="TEM", postprocess=None, sum=False, data=None, us
     n_local = -(-nparams // ndev)
     group = n_local if group is None else min(group, n_local)
     total = ndev * (-(-n_local // group) * group)
-    params = jax.tree.map(lambda v: jnp.concatenate([v, jnp.repeat(v[:1], total - nparams, axis=0)]), params)
+    params = jax.tree_util.tree_map(lambda v: jnp.concatenate([v, jnp.repeat(v[:1], total - nparams, axis=0)]), params)
     params["mask"] = jnp.arange(total) < nparams    # False for padding
 
     spd = sp.asdict()
@@ -177,12 +187,12 @@ def _map_groups(f, params, ndev, group, sum):
     Device memory depends on group, not on nparams.
     The results are summed (sum=True) or concatenated in the original order on CPU (sum=False).
     """
-    n_local = len(jax.tree.leaves(params)[0]) // ndev
-    local = jax.tree.map(lambda v: v.reshape(ndev, n_local, *v.shape[1:]), params)
+    n_local = len(jax.tree_util.tree_leaves(params)[0]) // ndev
+    local = jax.tree_util.tree_map(lambda v: v.reshape(ndev, n_local, *v.shape[1:]), params)
     cpu = jax.sharding.SingleDeviceSharding(jax.devices("cpu")[0])
     res = []
     for start in range(0, n_local, group):
-        p = jax.tree.map(lambda v: v[:, start:start + group].reshape(-1, *v.shape[2:]), local)
+        p = jax.tree_util.tree_map(lambda v: v[:, start:start + group].reshape(-1, *v.shape[2:]), local)
         r = f(p)
         res.append(r if sum else jax.device_put(r, cpu).reshape(ndev, group, *r.shape[1:]))   # only one group stays on device
     if sum:

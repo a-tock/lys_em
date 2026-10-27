@@ -1,8 +1,34 @@
 import math
+import inspect
 import jax
 import jax.numpy as jnp
 
-Host, Dev = jax.memory.Space.Host, jax.memory.Space.Device
+# Host offloading (jax.memory) is available from JAX 0.7.1. In older versions, all slices are placed on device.
+HOST_OFFLOAD = hasattr(jax, "memory")
+if HOST_OFFLOAD:
+    Host, Dev = jax.memory.Space.Host, jax.memory.Space.Device
+
+
+def _vma(x):
+    """Mesh axes over which x is device-varying inside shard_map (aval.vma was replaced by manual_axis_type in new JAX)."""
+    aval = jax.typeof(x)
+    return aval.vma if hasattr(aval, "vma") else aval.manual_axis_type.varying
+
+
+def _map(f, xs, batch):
+    """jax.lax.map(f, xs, batch_size=batch). batch_size is not available before JAX 0.4.31."""
+    if "batch_size" in inspect.signature(jax.lax.map).parameters:
+        return jax.lax.map(f, xs, batch_size=batch)
+    tree = jax.tree_util
+    n = tree.tree_leaves(xs)[0].shape[0]
+    batch = min(batch, n)
+    m = n // batch * batch
+    ys = jax.lax.map(jax.vmap(f), tree.tree_map(lambda x: x[:m].reshape(n // batch, batch, *x.shape[1:]), xs))
+    ys = tree.tree_map(lambda y: y.reshape(m, *y.shape[2:]), ys)
+    if m < n:
+        rest = jax.vmap(f)(tree.tree_map(lambda x: x[m:], xs))
+        ys = tree.tree_map(lambda a, b: jnp.concatenate([a, b]), ys, rest)
+    return ys
 
 
 def _pvary(x, axes):
@@ -37,7 +63,7 @@ def _propagate(phi, t, Pk, nvalid=None):
 def _propagate_all(phi, t, Pk, batch, nvalid=None):
     """_propagate for all parameters. phi: (nparams, nprobe, Nx, Ny), Pk: (nparams, Nx, Ny). batch parameters are computed at once."""
     f = jax.checkpoint(lambda a: _propagate(a[0], t, a[1], nvalid))  # in backward, recompute the propagation for each batch
-    return jax.lax.map(f, (phi, Pk), batch_size=batch)
+    return _map(f, (phi, Pk), batch)
 
 
 def _scan_chunks(f, carry, t_r, size, xs=None, reverse=False):
@@ -47,7 +73,8 @@ def _scan_chunks(f, carry, t_r, size, xs=None, reverse=False):
     """
     t_chunks = t_r.reshape(-1, size, *t_r.shape[1:])
     starts = jnp.arange(len(t_chunks)) * size
-    carry, ys = jax.lax.scan(lambda c, a: f(c, jax.device_put(a[0], Dev), a[1], a[2]), carry, (t_chunks, xs, starts), reverse=reverse)
+    to_dev = (lambda t: jax.device_put(t, Dev)) if HOST_OFFLOAD else (lambda t: t)
+    carry, ys = jax.lax.scan(lambda c, a: f(c, to_dev(a[0]), a[1], a[2]), carry, (t_chunks, xs, starts), reverse=reverse)
     return carry, ys
 
 
@@ -91,7 +118,7 @@ def make_propagator(chunk=None, batch=1, nslices=None):
             dphi, dPk = carry
             # t is replicated over devices. Make it device-varying here, so that dt is summed over devices
             # only once per chunk (below), not for each batch inside vjp.
-            axes = tuple(jax.typeof(dphi).vma - jax.typeof(t).vma)
+            axes = tuple(_vma(dphi) - _vma(t))
             t = _pvary(t, axes)
             nvalid = None if nslices is None else nslices - start
             _, vjp = jax.vjp(lambda phi, t, pk: _propagate_all(phi, t, pk, batch, nvalid), jax.device_put(phi, Dev), t, Pk)
@@ -103,7 +130,7 @@ def make_propagator(chunk=None, batch=1, nslices=None):
     prop.defvjp(prop_fwd, prop_bwd)
 
     def propagate(phi0, Pk, t_r):
-        if jax.typeof(t_r).memory_space == Host:
+        if HOST_OFFLOAD and jax.typeof(t_r).memory_space == Host:
             return prop(phi0, Pk, t_r)
         return _forward(phi0, Pk, t_r, size(t_r), batch, nslices)[0]
     return propagate
